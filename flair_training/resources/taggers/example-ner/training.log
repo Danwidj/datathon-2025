@@ -1,0 +1,77 @@
+2025-01-28 22:26:49,201 ----------------------------------------------------------------------------------------------------
+2025-01-28 22:26:49,207 Model: "SequenceTagger(
+  (embeddings): TransformerWordEmbeddings(
+    (model): XLMRobertaModel(
+      (embeddings): XLMRobertaEmbeddings(
+        (word_embeddings): Embedding(250002, 1024, padding_idx=1)
+        (position_embeddings): Embedding(514, 1024, padding_idx=1)
+        (token_type_embeddings): Embedding(1, 1024)
+        (LayerNorm): LayerNorm((1024,), eps=1e-05, elementwise_affine=True)
+        (dropout): Dropout(p=0.1, inplace=False)
+      )
+      (encoder): XLMRobertaEncoder(
+        (layer): ModuleList(
+          (0-23): 24 x XLMRobertaLayer(
+            (attention): XLMRobertaAttention(
+              (self): XLMRobertaSdpaSelfAttention(
+                (query): Linear(in_features=1024, out_features=1024, bias=True)
+                (key): Linear(in_features=1024, out_features=1024, bias=True)
+                (value): Linear(in_features=1024, out_features=1024, bias=True)
+                (dropout): Dropout(p=0.1, inplace=False)
+              )
+              (output): XLMRobertaSelfOutput(
+                (dense): Linear(in_features=1024, out_features=1024, bias=True)
+                (LayerNorm): LayerNorm((1024,), eps=1e-05, elementwise_affine=True)
+                (dropout): Dropout(p=0.1, inplace=False)
+              )
+            )
+            (intermediate): XLMRobertaIntermediate(
+              (dense): Linear(in_features=1024, out_features=4096, bias=True)
+              (intermediate_act_fn): GELUActivation()
+            )
+            (output): XLMRobertaOutput(
+              (dense): Linear(in_features=4096, out_features=1024, bias=True)
+              (LayerNorm): LayerNorm((1024,), eps=1e-05, elementwise_affine=True)
+              (dropout): Dropout(p=0.1, inplace=False)
+            )
+          )
+        )
+      )
+      (pooler): XLMRobertaPooler(
+        (dense): Linear(in_features=1024, out_features=1024, bias=True)
+        (activation): Tanh()
+      )
+    )
+  )
+  (locked_dropout): LockedDropout(p=0.5)
+  (linear): Linear(in_features=1024, out_features=76, bias=True)
+  (loss_function): CrossEntropyLoss()
+)"
+2025-01-28 22:26:49,218 ----------------------------------------------------------------------------------------------------
+2025-01-28 22:26:49,218 Corpus: 6536 train + 693 dev + 7240 test sentences
+2025-01-28 22:26:49,218 ----------------------------------------------------------------------------------------------------
+2025-01-28 22:26:49,218 Train:  6536 sentences
+2025-01-28 22:26:49,227         (train_with_dev=False, train_with_test=False)
+2025-01-28 22:26:49,227 ----------------------------------------------------------------------------------------------------
+2025-01-28 22:26:49,227 Training Params:
+2025-01-28 22:26:49,227  - learning_rate: "0.1" 
+2025-01-28 22:26:49,227  - mini_batch_size: "32"
+2025-01-28 22:26:49,227  - max_epochs: "150"
+2025-01-28 22:26:49,235  - shuffle: "True"
+2025-01-28 22:26:49,236 ----------------------------------------------------------------------------------------------------
+2025-01-28 22:26:49,237 Plugins:
+2025-01-28 22:26:49,239  - AnnealOnPlateau | patience: '3', anneal_factor: '0.5', min_learning_rate: '0.0001'
+2025-01-28 22:26:49,241 ----------------------------------------------------------------------------------------------------
+2025-01-28 22:26:49,243 Final evaluation on model from best epoch (best-model.pt)
+2025-01-28 22:26:49,244  - metric: "('micro avg', 'f1-score')"
+2025-01-28 22:26:49,245 ----------------------------------------------------------------------------------------------------
+2025-01-28 22:26:49,247 Computation:
+2025-01-28 22:26:49,247  - compute on device: cpu
+2025-01-28 22:26:49,248  - embedding storage: cpu
+2025-01-28 22:26:49,250 ----------------------------------------------------------------------------------------------------
+2025-01-28 22:26:49,253 Model training base path: "resources\taggers\example-ner"
+2025-01-28 22:26:49,254 ----------------------------------------------------------------------------------------------------
+2025-01-28 22:26:49,255 ----------------------------------------------------------------------------------------------------
+2025-01-28 22:28:40,486 ----------------------------------------------------------------------------------------------------
+2025-01-28 22:28:40,849 Exiting from training early.
+2025-01-28 22:28:40,885 Saving model ...
