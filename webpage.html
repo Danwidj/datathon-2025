@@ -1,0 +1,39 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Interactive Graph Search</title>
+    <link rel="stylesheet" href="style.css">
+</head>
+<body>
+
+    <div class="container">
+        <header>
+            <h1>Search Graphs</h1>
+            <div class="search-container">
+                <input type="text" id="search-box" placeholder="Search for entities..." />
+            </div>
+        </header>
+
+        <div class="search-results" id="search-results" style="display: none;">
+            <h2>Search Results</h2>
+            <ul id="search-list"></ul>
+        </div>
+        
+        <div class="search-results">
+            <h2>All Graphs</h2>
+            <div id="wikileaks-list">
+                <h3>WikiLeaks Graphs</h3>
+                <ul></ul>
+            </div>
+            <div id="news-list">
+                <h3>News Graphs</h3>
+                <ul></ul>
+            </div>
+        </div>
+    </div>
+
+    <script src="script.js"></script>
+</body>
+</html>
