@@ -1,0 +1,453 @@
+<html>
+    <head>
+        <meta charset="utf-8">
+        
+            <script>function neighbourhoodHighlight(params) {
+  // console.log("in nieghbourhoodhighlight");
+  allNodes = nodes.get({ returnType: "Object" });
+  // originalNodes = JSON.parse(JSON.stringify(allNodes));
+  // if something is selected:
+  if (params.nodes.length > 0) {
+    highlightActive = true;
+    var i, j;
+    var selectedNode = params.nodes[0];
+    var degrees = 2;
+
+    // mark all nodes as hard to read.
+    for (let nodeId in allNodes) {
+      // nodeColors[nodeId] = allNodes[nodeId].color;
+      allNodes[nodeId].color = "rgba(200,200,200,0.5)";
+      if (allNodes[nodeId].hiddenLabel === undefined) {
+        allNodes[nodeId].hiddenLabel = allNodes[nodeId].label;
+        allNodes[nodeId].label = undefined;
+      }
+    }
+    var connectedNodes = network.getConnectedNodes(selectedNode);
+    var allConnectedNodes = [];
+
+    // get the second degree nodes
+    for (i = 1; i < degrees; i++) {
+      for (j = 0; j < connectedNodes.length; j++) {
+        allConnectedNodes = allConnectedNodes.concat(
+          network.getConnectedNodes(connectedNodes[j])
+        );
+      }
+    }
+
+    // all second degree nodes get a different color and their label back
+    for (i = 0; i < allConnectedNodes.length; i++) {
+      // allNodes[allConnectedNodes[i]].color = "pink";
+      allNodes[allConnectedNodes[i]].color = "rgba(150,150,150,0.75)";
+      if (allNodes[allConnectedNodes[i]].hiddenLabel !== undefined) {
+        allNodes[allConnectedNodes[i]].label =
+          allNodes[allConnectedNodes[i]].hiddenLabel;
+        allNodes[allConnectedNodes[i]].hiddenLabel = undefined;
+      }
+    }
+
+    // all first degree nodes get their own color and their label back
+    for (i = 0; i < connectedNodes.length; i++) {
+      // allNodes[connectedNodes[i]].color = undefined;
+      allNodes[connectedNodes[i]].color = nodeColors[connectedNodes[i]];
+      if (allNodes[connectedNodes[i]].hiddenLabel !== undefined) {
+        allNodes[connectedNodes[i]].label =
+          allNodes[connectedNodes[i]].hiddenLabel;
+        allNodes[connectedNodes[i]].hiddenLabel = undefined;
+      }
+    }
+
+    // the main node gets its own color and its label back.
+    // allNodes[selectedNode].color = undefined;
+    allNodes[selectedNode].color = nodeColors[selectedNode];
+    if (allNodes[selectedNode].hiddenLabel !== undefined) {
+      allNodes[selectedNode].label = allNodes[selectedNode].hiddenLabel;
+      allNodes[selectedNode].hiddenLabel = undefined;
+    }
+  } else if (highlightActive === true) {
+    // console.log("highlightActive was true");
+    // reset all nodes
+    for (let nodeId in allNodes) {
+      // allNodes[nodeId].color = "purple";
+      allNodes[nodeId].color = nodeColors[nodeId];
+      // delete allNodes[nodeId].color;
+      if (allNodes[nodeId].hiddenLabel !== undefined) {
+        allNodes[nodeId].label = allNodes[nodeId].hiddenLabel;
+        allNodes[nodeId].hiddenLabel = undefined;
+      }
+    }
+    highlightActive = false;
+  }
+
+  // transform the object into an array
+  var updateArray = [];
+  if (params.nodes.length > 0) {
+    for (let nodeId in allNodes) {
+      if (allNodes.hasOwnProperty(nodeId)) {
+        // console.log(allNodes[nodeId]);
+        updateArray.push(allNodes[nodeId]);
+      }
+    }
+    nodes.update(updateArray);
+  } else {
+    // console.log("Nothing was selected");
+    for (let nodeId in allNodes) {
+      if (allNodes.hasOwnProperty(nodeId)) {
+        // console.log(allNodes[nodeId]);
+        // allNodes[nodeId].color = {};
+        updateArray.push(allNodes[nodeId]);
+      }
+    }
+    nodes.update(updateArray);
+  }
+}
+
+function filterHighlight(params) {
+  allNodes = nodes.get({ returnType: "Object" });
+  // if something is selected:
+  if (params.nodes.length > 0) {
+    filterActive = true;
+    let selectedNodes = params.nodes;
+
+    // hiding all nodes and saving the label
+    for (let nodeId in allNodes) {
+      allNodes[nodeId].hidden = true;
+      if (allNodes[nodeId].savedLabel === undefined) {
+        allNodes[nodeId].savedLabel = allNodes[nodeId].label;
+        allNodes[nodeId].label = undefined;
+      }
+    }
+
+    for (let i=0; i < selectedNodes.length; i++) {
+      allNodes[selectedNodes[i]].hidden = false;
+      if (allNodes[selectedNodes[i]].savedLabel !== undefined) {
+        allNodes[selectedNodes[i]].label = allNodes[selectedNodes[i]].savedLabel;
+        allNodes[selectedNodes[i]].savedLabel = undefined;
+      }
+    }
+
+  } else if (filterActive === true) {
+    // reset all nodes
+    for (let nodeId in allNodes) {
+      allNodes[nodeId].hidden = false;
+      if (allNodes[nodeId].savedLabel !== undefined) {
+        allNodes[nodeId].label = allNodes[nodeId].savedLabel;
+        allNodes[nodeId].savedLabel = undefined;
+      }
+    }
+    filterActive = false;
+  }
+
+  // transform the object into an array
+  var updateArray = [];
+  if (params.nodes.length > 0) {
+    for (let nodeId in allNodes) {
+      if (allNodes.hasOwnProperty(nodeId)) {
+        updateArray.push(allNodes[nodeId]);
+      }
+    }
+    nodes.update(updateArray);
+  } else {
+    for (let nodeId in allNodes) {
+      if (allNodes.hasOwnProperty(nodeId)) {
+        updateArray.push(allNodes[nodeId]);
+      }
+    }
+    nodes.update(updateArray);
+  }
+}
+
+function selectNode(nodes) {
+  network.selectNodes(nodes);
+  neighbourhoodHighlight({ nodes: nodes });
+  return nodes;
+}
+
+function selectNodes(nodes) {
+  network.selectNodes(nodes);
+  filterHighlight({nodes: nodes});
+  return nodes;
+}
+
+function highlightFilter(filter) {
+  let selectedNodes = []
+  let selectedProp = filter['property']
+  if (filter['item'] === 'node') {
+    let allNodes = nodes.get({ returnType: "Object" });
+    for (let nodeId in allNodes) {
+      if (allNodes[nodeId][selectedProp] && filter['value'].includes((allNodes[nodeId][selectedProp]).toString())) {
+        selectedNodes.push(nodeId)
+      }
+    }
+  }
+  else if (filter['item'] === 'edge'){
+    let allEdges = edges.get({returnType: 'object'});
+    // check if the selected property exists for selected edge and select the nodes connected to the edge
+    for (let edge in allEdges) {
+      if (allEdges[edge][selectedProp] && filter['value'].includes((allEdges[edge][selectedProp]).toString())) {
+        selectedNodes.push(allEdges[edge]['from'])
+        selectedNodes.push(allEdges[edge]['to'])
+      }
+    }
+  }
+  selectNodes(selectedNodes)
+}</script>
+            <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/vis-network/9.1.2/dist/dist/vis-network.min.css" integrity="sha512-WgxfT5LWjfszlPHXRmBWHkV2eceiWTOBvrKCNbdgDYTHrT2AeLCGbF4sZlZw3UMN3WtL0tGUoIAKsu8mllg/XA==" crossorigin="anonymous" referrerpolicy="no-referrer" />
+            <script src="https://cdnjs.cloudflare.com/ajax/libs/vis-network/9.1.2/dist/vis-network.min.js" integrity="sha512-LnvoEWDFrqGHlHmDD2101OrLcbsfkrzoSpvtSQtxK3RMnRV0eOkhhBN2dXHKRrUU8p2DGRTk35n4O8nWSVe1mQ==" crossorigin="anonymous" referrerpolicy="no-referrer"></script>
+            
+            
+            
+            
+            
+            
+
+        
+<center>
+<h1></h1>
+</center>
+
+<!-- <link rel="stylesheet" href="../node_modules/vis/dist/vis.min.css" type="text/css" />
+<script type="text/javascript" src="../node_modules/vis/dist/vis.js"> </script>-->
+        <link
+          href="https://cdn.jsdelivr.net/npm/bootstrap@5.0.0-beta3/dist/css/bootstrap.min.css"
+          rel="stylesheet"
+          integrity="sha384-eOJMYsd53ii+scO/bJGFsiCZc+5NDVN2yr8+0RDqr0Ql0h+rP48ckxlpbzKgwra6"
+          crossorigin="anonymous"
+        />
+        <script
+          src="https://cdn.jsdelivr.net/npm/bootstrap@5.0.0-beta3/dist/js/bootstrap.bundle.min.js"
+          integrity="sha384-JEW9xMcG8R+pH31jmWH6WWP0WintQrMb4s7ZOdauHnUtxwoG2vI5DkLtS3qm9Ekf"
+          crossorigin="anonymous"
+        ></script>
+
+
+        <center>
+          <h1></h1>
+        </center>
+        <style type="text/css">
+
+             #mynetwork {
+                 width: 100%;
+                 height: 100vh;
+                 background-color: #222222;
+                 border: 1px solid lightgray;
+                 position: relative;
+                 float: left;
+             }
+
+             
+             #loadingBar {
+                 position:absolute;
+                 top:0px;
+                 left:0px;
+                 width: 100%;
+                 height: 100vh;
+                 background-color:rgba(200,200,200,0.8);
+                 -webkit-transition: all 0.5s ease;
+                 -moz-transition: all 0.5s ease;
+                 -ms-transition: all 0.5s ease;
+                 -o-transition: all 0.5s ease;
+                 transition: all 0.5s ease;
+                 opacity:1;
+             }
+
+             #bar {
+                 position:absolute;
+                 top:0px;
+                 left:0px;
+                 width:20px;
+                 height:20px;
+                 margin:auto auto auto auto;
+                 border-radius:11px;
+                 border:2px solid rgba(30,30,30,0.05);
+                 background: rgb(0, 173, 246); /* Old browsers */
+                 box-shadow: 2px 0px 4px rgba(0,0,0,0.4);
+             }
+
+             #border {
+                 position:absolute;
+                 top:10px;
+                 left:10px;
+                 width:500px;
+                 height:23px;
+                 margin:auto auto auto auto;
+                 box-shadow: 0px 0px 4px rgba(0,0,0,0.2);
+                 border-radius:10px;
+             }
+
+             #text {
+                 position:absolute;
+                 top:8px;
+                 left:530px;
+                 width:30px;
+                 height:50px;
+                 margin:auto auto auto auto;
+                 font-size:22px;
+                 color: #000000;
+             }
+
+             div.outerBorder {
+                 position:relative;
+                 top:400px;
+                 width:600px;
+                 height:44px;
+                 margin:auto auto auto auto;
+                 border:8px solid rgba(0,0,0,0.1);
+                 background: rgb(252,252,252); /* Old browsers */
+                 background: -moz-linear-gradient(top,  rgba(252,252,252,1) 0%, rgba(237,237,237,1) 100%); /* FF3.6+ */
+                 background: -webkit-gradient(linear, left top, left bottom, color-stop(0%,rgba(252,252,252,1)), color-stop(100%,rgba(237,237,237,1))); /* Chrome,Safari4+ */
+                 background: -webkit-linear-gradient(top,  rgba(252,252,252,1) 0%,rgba(237,237,237,1) 100%); /* Chrome10+,Safari5.1+ */
+                 background: -o-linear-gradient(top,  rgba(252,252,252,1) 0%,rgba(237,237,237,1) 100%); /* Opera 11.10+ */
+                 background: -ms-linear-gradient(top,  rgba(252,252,252,1) 0%,rgba(237,237,237,1) 100%); /* IE10+ */
+                 background: linear-gradient(to bottom,  rgba(252,252,252,1) 0%,rgba(237,237,237,1) 100%); /* W3C */
+                 filter: progid:DXImageTransform.Microsoft.gradient( startColorstr='#fcfcfc', endColorstr='#ededed',GradientType=0 ); /* IE6-9 */
+                 border-radius:72px;
+                 box-shadow: 0px 0px 10px rgba(0,0,0,0.2);
+             }
+             
+
+             
+
+             
+        </style>
+    </head>
+
+
+    <body>
+        <div class="card" style="width: 100%">
+            
+            
+            <div id="mynetwork" class="card-body"></div>
+        </div>
+
+        
+            <div id="loadingBar">
+              <div class="outerBorder">
+                <div id="text">0%</div>
+                <div id="border">
+                  <div id="bar"></div>
+                </div>
+              </div>
+            </div>
+        
+        
+
+        <script type="text/javascript">
+
+              // initialize global variables.
+              var edges;
+              var nodes;
+              var allNodes;
+              var allEdges;
+              var nodeColors;
+              var originalNodes;
+              var network;
+              var container;
+              var options, data;
+              var filter = {
+                  item : '',
+                  property : '',
+                  value : []
+              };
+
+              
+
+              
+
+              // This method is responsible for drawing the graph, returns the drawn network
+              function drawGraph() {
+                  var container = document.getElementById('mynetwork');
+
+                  
+
+                  // parsing and collecting nodes and edges from the python
+                  nodes = new vis.DataSet([{"borderWidth": 4, "borderWidthSelected": 8, "color": {"background": "#FFA500", "border": "#FFA500", "highlight": {"border": "#FFA500"}}, "font": {"color": "white"}, "id": "Ventura", "label": "Ventura", "shape": "dot", "size": 30}, {"borderWidth": 4, "borderWidthSelected": 8, "color": {"background": "#007BFF", "border": "#007BFF", "highlight": {"border": "#007BFF"}}, "font": {"color": "white"}, "id": "Supreme Court", "label": "Supreme Court", "shape": "dot", "size": 30}, {"borderWidth": 4, "borderWidthSelected": 8, "color": {"background": "#8E44AD", "border": "#8E44AD", "highlight": {"border": "#8E44AD"}}, "font": {"color": "white"}, "id": "Portugal", "label": "Portugal", "shape": "dot", "size": 30}, {"borderWidth": 4, "borderWidthSelected": 8, "color": {"background": "#007BFF", "border": "#007BFF", "highlight": {"border": "#007BFF"}}, "font": {"color": "white"}, "id": "Chega", "label": "Chega", "shape": "dot", "size": 30}, {"borderWidth": 4, "borderWidthSelected": 8, "color": {"background": "#007BFF", "border": "#007BFF", "highlight": {"border": "#007BFF"}}, "font": {"color": "white"}, "id": "New York Times", "label": "New York Times", "shape": "dot", "size": 30}, {"borderWidth": 4, "borderWidthSelected": 8, "color": {"background": "#FFA500", "border": "#FFA500", "highlight": {"border": "#FFA500"}}, "font": {"color": "white"}, "id": "Chalabi", "label": "Chalabi", "shape": "dot", "size": 30}, {"borderWidth": 4, "borderWidthSelected": 8, "color": {"background": "#8E44AD", "border": "#8E44AD", "highlight": {"border": "#8E44AD"}}, "font": {"color": "white"}, "id": "Israel", "label": "Israel", "shape": "dot", "size": 30}, {"borderWidth": 4, "borderWidthSelected": 8, "color": {"background": "#8E44AD", "border": "#8E44AD", "highlight": {"border": "#8E44AD"}}, "font": {"color": "white"}, "id": "Gaza", "label": "Gaza", "shape": "dot", "size": 30}, {"borderWidth": 4, "borderWidthSelected": 8, "color": {"background": "#8E44AD", "border": "#8E44AD", "highlight": {"border": "#8E44AD"}}, "font": {"color": "white"}, "id": "Palestine", "label": "Palestine", "shape": "dot", "size": 30}, {"borderWidth": 4, "borderWidthSelected": 8, "color": {"background": "#FFA500", "border": "#FFA500", "highlight": {"border": "#FFA500"}}, "font": {"color": "white"}, "id": "Daniel Wu", "label": "Daniel Wu", "shape": "dot", "size": 30}, {"borderWidth": 4, "borderWidthSelected": 8, "color": {"background": "#007BFF", "border": "#007BFF", "highlight": {"border": "#007BFF"}}, "font": {"color": "white"}, "id": "Barbie", "label": "Barbie", "shape": "dot", "size": 30}, {"borderWidth": 4, "borderWidthSelected": 8, "color": {"background": "#FFA500", "border": "#FFA500", "highlight": {"border": "#FFA500"}}, "font": {"color": "white"}, "id": "Shirley Kwan", "label": "Shirley Kwan", "shape": "dot", "size": 30}, {"borderWidth": 4, "borderWidthSelected": 8, "color": {"background": "#007BFF", "border": "#007BFF", "highlight": {"border": "#007BFF"}}, "font": {"color": "white"}, "id": "Universal Music", "label": "Universal Music", "shape": "dot", "size": 30}, {"borderWidth": 4, "borderWidthSelected": 8, "color": {"background": "#8E44AD", "border": "#8E44AD", "highlight": {"border": "#8E44AD"}}, "font": {"color": "white"}, "id": "Bhutan", "label": "Bhutan", "shape": "dot", "size": 30}, {"borderWidth": 4, "borderWidthSelected": 8, "color": {"background": "#007BFF", "border": "#007BFF", "highlight": {"border": "#007BFF"}}, "font": {"color": "white"}, "id": "Snapchat", "label": "Snapchat", "shape": "dot", "size": 30}, {"borderWidth": 4, "borderWidthSelected": 8, "color": {"background": "#007BFF", "border": "#007BFF", "highlight": {"border": "#007BFF"}}, "font": {"color": "white"}, "id": "NSPCC", "label": "NSPCC", "shape": "dot", "size": 30}, {"borderWidth": 4, "borderWidthSelected": 8, "color": {"background": "#007BFF", "border": "#007BFF", "highlight": {"border": "#007BFF"}}, "font": {"color": "white"}, "id": "TikTok", "label": "TikTok", "shape": "dot", "size": 30}, {"borderWidth": 4, "borderWidthSelected": 8, "color": {"background": "#007BFF", "border": "#007BFF", "highlight": {"border": "#007BFF"}}, "font": {"color": "white"}, "id": "ICO", "label": "ICO", "shape": "dot", "size": 30}, {"borderWidth": 4, "borderWidthSelected": 8, "color": {"background": "#FFA500", "border": "#FFA500", "highlight": {"border": "#FFA500"}}, "font": {"color": "white"}, "id": "Gabriel Leyes", "label": "Gabriel Leyes", "shape": "dot", "size": 30}, {"borderWidth": 4, "borderWidthSelected": 8, "color": {"background": "#007BFF", "border": "#007BFF", "highlight": {"border": "#007BFF"}}, "font": {"color": "white"}, "id": "Deportivo Binacional", "label": "Deportivo Binacional", "shape": "dot", "size": 30}, {"borderWidth": 4, "borderWidthSelected": 8, "color": {"background": "#007BFF", "border": "#007BFF", "highlight": {"border": "#007BFF"}}, "font": {"color": "white"}, "id": "Peruvian Liga 1", "label": "Peruvian Liga 1", "shape": "dot", "size": 30}, {"borderWidth": 4, "borderWidthSelected": 8, "color": {"background": "#007BFF", "border": "#007BFF", "highlight": {"border": "#007BFF"}}, "font": {"color": "white"}, "id": "Academia Cantolao", "label": "Academia Cantolao", "shape": "dot", "size": 30}, {"borderWidth": 4, "borderWidthSelected": 8, "color": {"background": "#FFA500", "border": "#FFA500", "highlight": {"border": "#FFA500"}}, "font": {"color": "white"}, "id": "Andrew Tate", "label": "Andrew Tate", "shape": "dot", "size": 30}, {"borderWidth": 4, "borderWidthSelected": 8, "color": {"background": "#FFA500", "border": "#FFA500", "highlight": {"border": "#FFA500"}}, "font": {"color": "white"}, "id": "Tristan Tate", "label": "Tristan Tate", "shape": "dot", "size": 30}, {"borderWidth": 4, "borderWidthSelected": 8, "color": {"background": "#8E44AD", "border": "#8E44AD", "highlight": {"border": "#8E44AD"}}, "font": {"color": "white"}, "id": "Romania", "label": "Romania", "shape": "dot", "size": 30}, {"borderWidth": 4, "borderWidthSelected": 8, "color": {"background": "#FFA500", "border": "#FFA500", "highlight": {"border": "#FFA500"}}, "font": {"color": "white"}, "id": "Chew Shou Zi", "label": "Chew Shou Zi", "shape": "dot", "size": 30}, {"borderWidth": 4, "borderWidthSelected": 8, "color": {"background": "#8E44AD", "border": "#8E44AD", "highlight": {"border": "#8E44AD"}}, "font": {"color": "white"}, "id": "China", "label": "China", "shape": "dot", "size": 30}, {"borderWidth": 4, "borderWidthSelected": 8, "color": {"background": "#007BFF", "border": "#007BFF", "highlight": {"border": "#007BFF"}}, "font": {"color": "white"}, "id": "Meta", "label": "Meta", "shape": "dot", "size": 30}, {"borderWidth": 4, "borderWidthSelected": 8, "color": {"background": "#FFA500", "border": "#FFA500", "highlight": {"border": "#FFA500"}}, "font": {"color": "white"}, "id": "Linda Yaccarino", "label": "Linda Yaccarino", "shape": "dot", "size": 30}, {"borderWidth": 4, "borderWidthSelected": 8, "color": {"background": "#007BFF", "border": "#007BFF", "highlight": {"border": "#007BFF"}}, "font": {"color": "white"}, "id": "Snap", "label": "Snap", "shape": "dot", "size": 30}, {"borderWidth": 4, "borderWidthSelected": 8, "color": {"background": "#FFA500", "border": "#FFA500", "highlight": {"border": "#FFA500"}}, "font": {"color": "white"}, "id": "Evan Spiegel", "label": "Evan Spiegel", "shape": "dot", "size": 30}, {"borderWidth": 4, "borderWidthSelected": 8, "color": {"background": "#007BFF", "border": "#007BFF", "highlight": {"border": "#007BFF"}}, "font": {"color": "white"}, "id": "Discord", "label": "Discord", "shape": "dot", "size": 30}, {"borderWidth": 4, "borderWidthSelected": 8, "color": {"background": "#FFA500", "border": "#FFA500", "highlight": {"border": "#FFA500"}}, "font": {"color": "white"}, "id": "Jason Citron", "label": "Jason Citron", "shape": "dot", "size": 30}, {"borderWidth": 4, "borderWidthSelected": 8, "color": {"background": "#FFA500", "border": "#FFA500", "highlight": {"border": "#FFA500"}}, "font": {"color": "white"}, "id": "Tom Cotton", "label": "Tom Cotton", "shape": "dot", "size": 30}, {"borderWidth": 4, "borderWidthSelected": 8, "color": {"background": "#007BFF", "border": "#007BFF", "highlight": {"border": "#007BFF"}}, "font": {"color": "white"}, "id": "GIC", "label": "GIC", "shape": "dot", "size": 30}, {"borderWidth": 4, "borderWidthSelected": 8, "color": {"background": "#8E44AD", "border": "#8E44AD", "highlight": {"border": "#8E44AD"}}, "font": {"color": "white"}, "id": "Singapore", "label": "Singapore", "shape": "dot", "size": 30}, {"borderWidth": 4, "borderWidthSelected": 8, "color": {"background": "#FFA500", "border": "#FFA500", "highlight": {"border": "#FFA500"}}, "font": {"color": "white"}, "id": "Lim Chow Kiat", "label": "Lim Chow Kiat", "shape": "dot", "size": 30}, {"borderWidth": 4, "borderWidthSelected": 8, "color": {"background": "#FFA500", "border": "#FFA500", "highlight": {"border": "#FFA500"}}, "font": {"color": "white"}, "id": "Lee Kin Mun", "label": "Lee Kin Mun", "shape": "dot", "size": 30}, {"borderWidth": 4, "borderWidthSelected": 8, "color": {"background": "#FFA500", "border": "#FFA500", "highlight": {"border": "#FFA500"}}, "font": {"color": "white"}, "id": "Gwee Li Sui", "label": "Gwee Li Sui", "shape": "dot", "size": 30}, {"borderWidth": 4, "borderWidthSelected": 8, "color": {"background": "#FFA500", "border": "#FFA500", "highlight": {"border": "#FFA500"}}, "font": {"color": "white"}, "id": "Tharman Shanmugaratnam", "label": "Tharman Shanmugaratnam", "shape": "dot", "size": 30}, {"borderWidth": 4, "borderWidthSelected": 8, "color": {"background": "#FFA500", "border": "#FFA500", "highlight": {"border": "#FFA500"}}, "font": {"color": "white"}, "id": "Vivian Balakrishnan", "label": "Vivian Balakrishnan", "shape": "dot", "size": 30}, {"borderWidth": 4, "borderWidthSelected": 8, "color": {"background": "#FFA500", "border": "#FFA500", "highlight": {"border": "#FFA500"}}, "font": {"color": "white"}, "id": "Joseph Schooling", "label": "Joseph Schooling", "shape": "dot", "size": 30}, {"borderWidth": 4, "borderWidthSelected": 8, "color": {"background": "#FFA500", "border": "#FFA500", "highlight": {"border": "#FFA500"}}, "font": {"color": "white"}, "id": "JJ Lin", "label": "JJ Lin", "shape": "dot", "size": 30}, {"borderWidth": 4, "borderWidthSelected": 8, "color": {"background": "#FFA500", "border": "#FFA500", "highlight": {"border": "#FFA500"}}, "font": {"color": "white"}, "id": "Davin Indra", "label": "Davin Indra", "shape": "dot", "size": 30}, {"borderWidth": 4, "borderWidthSelected": 8, "color": {"background": "#FFA500", "border": "#FFA500", "highlight": {"border": "#FFA500"}}, "font": {"color": "white"}, "id": "Norshahril Saat", "label": "Norshahril Saat", "shape": "dot", "size": 30}, {"borderWidth": 4, "borderWidthSelected": 8, "color": {"background": "#007BFF", "border": "#007BFF", "highlight": {"border": "#007BFF"}}, "font": {"color": "white"}, "id": "ISEAS-Yusof Ishak Institute", "label": "ISEAS-Yusof Ishak Institute", "shape": "dot", "size": 30}, {"borderWidth": 4, "borderWidthSelected": 8, "color": {"background": "#FFA500", "border": "#FFA500", "highlight": {"border": "#FFA500"}}, "font": {"color": "white"}, "id": "Michael Kors", "label": "Michael Kors", "shape": "dot", "size": 30}, {"borderWidth": 4, "borderWidthSelected": 8, "color": {"background": "#8E44AD", "border": "#8E44AD", "highlight": {"border": "#8E44AD"}}, "font": {"color": "white"}, "id": "New York", "label": "New York", "shape": "dot", "size": 30}, {"borderWidth": 4, "borderWidthSelected": 8, "color": {"background": "#8E44AD", "border": "#8E44AD", "highlight": {"border": "#8E44AD"}}, "font": {"color": "white"}, "id": "Florida", "label": "Florida", "shape": "dot", "size": 30}, {"borderWidth": 4, "borderWidthSelected": 8, "color": {"background": "#FFA500", "border": "#FFA500", "highlight": {"border": "#FFA500"}}, "font": {"color": "white"}, "id": "Prince of Wales", "label": "Prince of Wales", "shape": "dot", "size": 30}, {"borderWidth": 4, "borderWidthSelected": 8, "color": {"background": "#FFA500", "border": "#FFA500", "highlight": {"border": "#FFA500"}}, "font": {"color": "white"}, "id": "Felicity Beck", "label": "Felicity Beck", "shape": "dot", "size": 30}, {"borderWidth": 4, "borderWidthSelected": 8, "color": {"background": "#FFA500", "border": "#FFA500", "highlight": {"border": "#FFA500"}}, "font": {"color": "white"}, "id": "Stewart Robertson", "label": "Stewart Robertson", "shape": "dot", "size": 30}, {"borderWidth": 4, "borderWidthSelected": 8, "color": {"background": "#007BFF", "border": "#007BFF", "highlight": {"border": "#007BFF"}}, "font": {"color": "white"}, "id": "Schwartz Architects", "label": "Schwartz Architects", "shape": "dot", "size": 30}, {"borderWidth": 4, "borderWidthSelected": 8, "color": {"background": "#8E44AD", "border": "#8E44AD", "highlight": {"border": "#8E44AD"}}, "font": {"color": "white"}, "id": "Staten Island", "label": "Staten Island", "shape": "dot", "size": 30}, {"borderWidth": 4, "borderWidthSelected": 8, "color": {"background": "#8E44AD", "border": "#8E44AD", "highlight": {"border": "#8E44AD"}}, "font": {"color": "white"}, "id": "Melbourne", "label": "Melbourne", "shape": "dot", "size": 30}, {"borderWidth": 4, "borderWidthSelected": 8, "color": {"background": "#007BFF", "border": "#007BFF", "highlight": {"border": "#007BFF"}}, "font": {"color": "white"}, "id": "BAR Studio", "label": "BAR Studio", "shape": "dot", "size": 30}, {"borderWidth": 4, "borderWidthSelected": 8, "color": {"background": "#007BFF", "border": "#007BFF", "highlight": {"border": "#007BFF"}}, "font": {"color": "white"}, "id": "Millennium Hilton Bangkok", "label": "Millennium Hilton Bangkok", "shape": "dot", "size": 30}, {"borderWidth": 4, "borderWidthSelected": 8, "color": {"background": "#1ABC9C", "border": "#1ABC9C", "highlight": {"border": "#1ABC9C"}}, "font": {"color": "white"}, "id": "FIND Design Fair Asia", "label": "FIND Design Fair Asia", "shape": "dot", "size": 30}, {"borderWidth": 4, "borderWidthSelected": 8, "color": {"background": "#FFA500", "border": "#FFA500", "highlight": {"border": "#FFA500"}}, "font": {"color": "white"}, "id": "Ivana Icardi", "label": "Ivana Icardi", "shape": "dot", "size": 30}, {"borderWidth": 4, "borderWidthSelected": 8, "color": {"background": "#8E44AD", "border": "#8E44AD", "highlight": {"border": "#8E44AD"}}, "font": {"color": "white"}, "id": "Mallorca", "label": "Mallorca", "shape": "dot", "size": 30}, {"borderWidth": 4, "borderWidthSelected": 8, "color": {"background": "#FFA500", "border": "#FFA500", "highlight": {"border": "#FFA500"}}, "font": {"color": "white"}, "id": "Andres", "label": "Andres", "shape": "dot", "size": 30}, {"borderWidth": 4, "borderWidthSelected": 8, "color": {"background": "#007BFF", "border": "#007BFF", "highlight": {"border": "#007BFF"}}, "font": {"color": "white"}, "id": "Real Madrid", "label": "Real Madrid", "shape": "dot", "size": 30}, {"borderWidth": 4, "borderWidthSelected": 8, "color": {"background": "#FFA500", "border": "#FFA500", "highlight": {"border": "#FFA500"}}, "font": {"color": "white"}, "id": "Aitana Bonmati", "label": "Aitana Bonmati", "shape": "dot", "size": 30}, {"borderWidth": 4, "borderWidthSelected": 8, "color": {"background": "#FFA500", "border": "#FFA500", "highlight": {"border": "#FFA500"}}, "font": {"color": "white"}, "id": "Kira Yarmysh", "label": "Kira Yarmysh", "shape": "dot", "size": 30}, {"borderWidth": 4, "borderWidthSelected": 8, "color": {"background": "#FFA500", "border": "#FFA500", "highlight": {"border": "#FFA500"}}, "font": {"color": "white"}, "id": "Navalny", "label": "Navalny", "shape": "dot", "size": 30}, {"borderWidth": 4, "borderWidthSelected": 8, "color": {"background": "#FFA500", "border": "#FFA500", "highlight": {"border": "#FFA500"}}, "font": {"color": "white"}, "id": "Anna Biryukova", "label": "Anna Biryukova", "shape": "dot", "size": 30}, {"borderWidth": 4, "borderWidthSelected": 8, "color": {"background": "#FFA500", "border": "#FFA500", "highlight": {"border": "#FFA500"}}, "font": {"color": "white"}, "id": "Volkov", "label": "Volkov", "shape": "dot", "size": 30}, {"borderWidth": 4, "borderWidthSelected": 8, "color": {"background": "#8E44AD", "border": "#8E44AD", "highlight": {"border": "#8E44AD"}}, "font": {"color": "white"}, "id": "Vilnius", "label": "Vilnius", "shape": "dot", "size": 30}, {"borderWidth": 4, "borderWidthSelected": 8, "color": {"background": "#FFA500", "border": "#FFA500", "highlight": {"border": "#FFA500"}}, "font": {"color": "white"}, "id": "Ramunas Matonis", "label": "Ramunas Matonis", "shape": "dot", "size": 30}, {"borderWidth": 4, "borderWidthSelected": 8, "color": {"background": "#FFA500", "border": "#FFA500", "highlight": {"border": "#FFA500"}}, "font": {"color": "white"}, "id": "Warren Buffett", "label": "Warren Buffett", "shape": "dot", "size": 30}, {"borderWidth": 4, "borderWidthSelected": 8, "color": {"background": "#007BFF", "border": "#007BFF", "highlight": {"border": "#007BFF"}}, "font": {"color": "white"}, "id": "Berkshire Hathaway", "label": "Berkshire Hathaway", "shape": "dot", "size": 30}, {"borderWidth": 4, "borderWidthSelected": 8, "color": {"background": "#007BFF", "border": "#007BFF", "highlight": {"border": "#007BFF"}}, "font": {"color": "white"}, "id": "Media General", "label": "Media General", "shape": "dot", "size": 30}, {"borderWidth": 4, "borderWidthSelected": 8, "color": {"background": "#007BFF", "border": "#007BFF", "highlight": {"border": "#007BFF"}}, "font": {"color": "white"}, "id": "Buffalo News", "label": "Buffalo News", "shape": "dot", "size": 30}, {"borderWidth": 4, "borderWidthSelected": 8, "color": {"background": "#007BFF", "border": "#007BFF", "highlight": {"border": "#007BFF"}}, "font": {"color": "white"}, "id": "Omaha World Herald", "label": "Omaha World Herald", "shape": "dot", "size": 30}, {"borderWidth": 4, "borderWidthSelected": 8, "color": {"background": "#007BFF", "border": "#007BFF", "highlight": {"border": "#007BFF"}}, "font": {"color": "white"}, "id": "Washington Post", "label": "Washington Post", "shape": "dot", "size": 30}, {"borderWidth": 4, "borderWidthSelected": 8, "color": {"background": "#007BFF", "border": "#007BFF", "highlight": {"border": "#007BFF"}}, "font": {"color": "white"}, "id": "EDBI", "label": "EDBI", "shape": "dot", "size": 30}, {"borderWidth": 4, "borderWidthSelected": 8, "color": {"background": "#007BFF", "border": "#007BFF", "highlight": {"border": "#007BFF"}}, "font": {"color": "white"}, "id": "Singapore Economic Development Board", "label": "Singapore Economic Development Board", "shape": "dot", "size": 30}, {"borderWidth": 4, "borderWidthSelected": 8, "color": {"background": "#007BFF", "border": "#007BFF", "highlight": {"border": "#007BFF"}}, "font": {"color": "white"}, "id": "Temasek", "label": "Temasek", "shape": "dot", "size": 30}, {"borderWidth": 4, "borderWidthSelected": 8, "color": {"background": "#007BFF", "border": "#007BFF", "highlight": {"border": "#007BFF"}}, "font": {"color": "white"}, "id": "Sprinklr", "label": "Sprinklr", "shape": "dot", "size": 30}, {"borderWidth": 4, "borderWidthSelected": 8, "color": {"background": "#007BFF", "border": "#007BFF", "highlight": {"border": "#007BFF"}}, "font": {"color": "white"}, "id": "Intel", "label": "Intel", "shape": "dot", "size": 30}, {"borderWidth": 4, "borderWidthSelected": 8, "color": {"background": "#007BFF", "border": "#007BFF", "highlight": {"border": "#007BFF"}}, "font": {"color": "white"}, "id": "Microsoft", "label": "Microsoft", "shape": "dot", "size": 30}, {"borderWidth": 4, "borderWidthSelected": 8, "color": {"background": "#007BFF", "border": "#007BFF", "highlight": {"border": "#007BFF"}}, "font": {"color": "white"}, "id": "Samsung", "label": "Samsung", "shape": "dot", "size": 30}, {"borderWidth": 4, "borderWidthSelected": 8, "color": {"background": "#007BFF", "border": "#007BFF", "highlight": {"border": "#007BFF"}}, "font": {"color": "white"}, "id": "Nike", "label": "Nike", "shape": "dot", "size": 30}, {"borderWidth": 4, "borderWidthSelected": 8, "color": {"background": "#007BFF", "border": "#007BFF", "highlight": {"border": "#007BFF"}}, "font": {"color": "white"}, "id": "McDonald\u0027s", "label": "McDonald\u0027s", "shape": "dot", "size": 30}, {"borderWidth": 4, "borderWidthSelected": 8, "color": {"background": "#007BFF", "border": "#007BFF", "highlight": {"border": "#007BFF"}}, "font": {"color": "white"}, "id": "P\u0026G", "label": "P\u0026G", "shape": "dot", "size": 30}, {"borderWidth": 4, "borderWidthSelected": 8, "color": {"background": "#FFA500", "border": "#FFA500", "highlight": {"border": "#FFA500"}}, "font": {"color": "white"}, "id": "Ragy Thomas", "label": "Ragy Thomas", "shape": "dot", "size": 30}, {"borderWidth": 4, "borderWidthSelected": 8, "color": {"background": "#FFA500", "border": "#FFA500", "highlight": {"border": "#FFA500"}}, "font": {"color": "white"}, "id": "Kanye", "label": "Kanye", "shape": "dot", "size": 30}, {"borderWidth": 4, "borderWidthSelected": 8, "color": {"background": "#FFA500", "border": "#FFA500", "highlight": {"border": "#FFA500"}}, "font": {"color": "white"}, "id": "Kim Kardashian", "label": "Kim Kardashian", "shape": "dot", "size": 30}, {"borderWidth": 4, "borderWidthSelected": 8, "color": {"background": "#007BFF", "border": "#007BFF", "highlight": {"border": "#007BFF"}}, "font": {"color": "white"}, "id": "British Museum", "label": "British Museum", "shape": "dot", "size": 30}, {"borderWidth": 4, "borderWidthSelected": 8, "color": {"background": "#8E44AD", "border": "#8E44AD", "highlight": {"border": "#8E44AD"}}, "font": {"color": "white"}, "id": "Chile", "label": "Chile", "shape": "dot", "size": 30}, {"borderWidth": 4, "borderWidthSelected": 8, "color": {"background": "#8E44AD", "border": "#8E44AD", "highlight": {"border": "#8E44AD"}}, "font": {"color": "white"}, "id": "Easter Island", "label": "Easter Island", "shape": "dot", "size": 30}, {"borderWidth": 4, "borderWidthSelected": 8, "color": {"background": "#FFA500", "border": "#FFA500", "highlight": {"border": "#FFA500"}}, "font": {"color": "white"}, "id": "Pete", "label": "Pete", "shape": "dot", "size": 30}, {"borderWidth": 4, "borderWidthSelected": 8, "color": {"background": "#FFA500", "border": "#FFA500", "highlight": {"border": "#FFA500"}}, "font": {"color": "white"}, "id": "Richard Pierce", "label": "Richard Pierce", "shape": "dot", "size": 30}, {"borderWidth": 4, "borderWidthSelected": 8, "color": {"background": "#007BFF", "border": "#007BFF", "highlight": {"border": "#007BFF"}}, "font": {"color": "white"}, "id": "Lost Loch Spirits", "label": "Lost Loch Spirits", "shape": "dot", "size": 30}, {"borderWidth": 4, "borderWidthSelected": 8, "color": {"background": "#007BFF", "border": "#007BFF", "highlight": {"border": "#007BFF"}}, "font": {"color": "white"}, "id": "Visit Scotland", "label": "Visit Scotland", "shape": "dot", "size": 30}, {"borderWidth": 4, "borderWidthSelected": 8, "color": {"background": "#FFA500", "border": "#FFA500", "highlight": {"border": "#FFA500"}}, "font": {"color": "white"}, "id": "Leonard Bernstein", "label": "Leonard Bernstein", "shape": "dot", "size": 30}, {"borderWidth": 4, "borderWidthSelected": 8, "color": {"background": "#FFA500", "border": "#FFA500", "highlight": {"border": "#FFA500"}}, "font": {"color": "white"}, "id": "Bradley Cooper", "label": "Bradley Cooper", "shape": "dot", "size": 30}, {"borderWidth": 4, "borderWidthSelected": 8, "color": {"background": "#FFA500", "border": "#FFA500", "highlight": {"border": "#FFA500"}}, "font": {"color": "white"}, "id": "Jamie Bernstein", "label": "Jamie Bernstein", "shape": "dot", "size": 30}, {"borderWidth": 4, "borderWidthSelected": 8, "color": {"background": "#FFA500", "border": "#FFA500", "highlight": {"border": "#FFA500"}}, "font": {"color": "white"}, "id": "Alexander Bernstein", "label": "Alexander Bernstein", "shape": "dot", "size": 30}, {"borderWidth": 4, "borderWidthSelected": 8, "color": {"background": "#FFA500", "border": "#FFA500", "highlight": {"border": "#FFA500"}}, "font": {"color": "white"}, "id": "Nina Bernstein", "label": "Nina Bernstein", "shape": "dot", "size": 30}, {"borderWidth": 4, "borderWidthSelected": 8, "color": {"background": "#FFA500", "border": "#FFA500", "highlight": {"border": "#FFA500"}}, "font": {"color": "white"}, "id": "Donna Dawley", "label": "Donna Dawley", "shape": "dot", "size": 30}, {"borderWidth": 4, "borderWidthSelected": 8, "color": {"background": "#FFA500", "border": "#FFA500", "highlight": {"border": "#FFA500"}}, "font": {"color": "white"}, "id": "Chris Dawley", "label": "Chris Dawley", "shape": "dot", "size": 30}, {"borderWidth": 4, "borderWidthSelected": 8, "color": {"background": "#FFA500", "border": "#FFA500", "highlight": {"border": "#FFA500"}}, "font": {"color": "white"}, "id": "Frances Haugen", "label": "Frances Haugen", "shape": "dot", "size": 30}, {"borderWidth": 4, "borderWidthSelected": 8, "color": {"background": "#FFA500", "border": "#FFA500", "highlight": {"border": "#FFA500"}}, "font": {"color": "white"}, "id": "Mark Zuckerberg", "label": "Mark Zuckerberg", "shape": "dot", "size": 30}, {"borderWidth": 4, "borderWidthSelected": 8, "color": {"background": "#FFA500", "border": "#FFA500", "highlight": {"border": "#FFA500"}}, "font": {"color": "white"}, "id": "Mike DeWine", "label": "Mike DeWine", "shape": "dot", "size": 30}, {"borderWidth": 4, "borderWidthSelected": 8, "color": {"background": "#FFA500", "border": "#FFA500", "highlight": {"border": "#FFA500"}}, "font": {"color": "white"}, "id": "Hanna May Rhoden", "label": "Hanna May Rhoden", "shape": "dot", "size": 30}, {"borderWidth": 4, "borderWidthSelected": 8, "color": {"background": "#FFA500", "border": "#FFA500", "highlight": {"border": "#FFA500"}}, "font": {"color": "white"}, "id": "Kenneth Rhoden", "label": "Kenneth Rhoden", "shape": "dot", "size": 30}, {"borderWidth": 4, "borderWidthSelected": 8, "color": {"background": "#FFA500", "border": "#FFA500", "highlight": {"border": "#FFA500"}}, "font": {"color": "white"}, "id": "Christopher Rhoden Sr.", "label": "Christopher Rhoden Sr.", "shape": "dot", "size": 30}, {"borderWidth": 4, "borderWidthSelected": 8, "color": {"background": "#FFA500", "border": "#FFA500", "highlight": {"border": "#FFA500"}}, "font": {"color": "white"}, "id": "Dana Rhoden", "label": "Dana Rhoden", "shape": "dot", "size": 30}, {"borderWidth": 4, "borderWidthSelected": 8, "color": {"background": "#FFA500", "border": "#FFA500", "highlight": {"border": "#FFA500"}}, "font": {"color": "white"}, "id": "Clarence Frankie Rhoden", "label": "Clarence Frankie Rhoden", "shape": "dot", "size": 30}, {"borderWidth": 4, "borderWidthSelected": 8, "color": {"background": "#FFA500", "border": "#FFA500", "highlight": {"border": "#FFA500"}}, "font": {"color": "white"}, "id": "Christopher Rhoden Jr.", "label": "Christopher Rhoden Jr.", "shape": "dot", "size": 30}, {"borderWidth": 4, "borderWidthSelected": 8, "color": {"background": "#FFA500", "border": "#FFA500", "highlight": {"border": "#FFA500"}}, "font": {"color": "white"}, "id": "Gary Rhoden", "label": "Gary Rhoden", "shape": "dot", "size": 30}, {"borderWidth": 4, "borderWidthSelected": 8, "color": {"background": "#FFA500", "border": "#FFA500", "highlight": {"border": "#FFA500"}}, "font": {"color": "white"}, "id": "Hannah Gilley", "label": "Hannah Gilley", "shape": "dot", "size": 30}, {"borderWidth": 4, "borderWidthSelected": 8, "color": {"background": "#FFA500", "border": "#FFA500", "highlight": {"border": "#FFA500"}}, "font": {"color": "white"}, "id": "George Wagner IV", "label": "George Wagner IV", "shape": "dot", "size": 30}, {"borderWidth": 4, "borderWidthSelected": 8, "color": {"background": "#007BFF", "border": "#007BFF", "highlight": {"border": "#007BFF"}}, "font": {"color": "white"}, "id": "Rensselaer Polytechnic Institute", "label": "Rensselaer Polytechnic Institute", "shape": "dot", "size": 30}, {"borderWidth": 4, "borderWidthSelected": 8, "color": {"background": "#007BFF", "border": "#007BFF", "highlight": {"border": "#007BFF"}}, "font": {"color": "white"}, "id": "Daigle Cleaning Systems", "label": "Daigle Cleaning Systems", "shape": "dot", "size": 30}, {"borderWidth": 4, "borderWidthSelected": 8, "color": {"background": "#FFA500", "border": "#FFA500", "highlight": {"border": "#FFA500"}}, "font": {"color": "white"}, "id": "Alex Mashinsky", "label": "Alex Mashinsky", "shape": "dot", "size": 30}, {"borderWidth": 4, "borderWidthSelected": 8, "color": {"background": "#007BFF", "border": "#007BFF", "highlight": {"border": "#007BFF"}}, "font": {"color": "white"}, "id": "Celsius Network", "label": "Celsius Network", "shape": "dot", "size": 30}, {"borderWidth": 4, "borderWidthSelected": 8, "color": {"background": "#FFA500", "border": "#FFA500", "highlight": {"border": "#FFA500"}}, "font": {"color": "white"}, "id": "Letitia James", "label": "Letitia James", "shape": "dot", "size": 30}, {"borderWidth": 4, "borderWidthSelected": 8, "color": {"background": "#FFA500", "border": "#FFA500", "highlight": {"border": "#FFA500"}}, "font": {"color": "white"}, "id": "Margaret Chan", "label": "Margaret Chan", "shape": "dot", "size": 30}, {"borderWidth": 4, "borderWidthSelected": 8, "color": {"background": "#FFA500", "border": "#FFA500", "highlight": {"border": "#FFA500"}}, "font": {"color": "white"}, "id": "Vaughan Gething", "label": "Vaughan Gething", "shape": "dot", "size": 30}, {"borderWidth": 4, "borderWidthSelected": 8, "color": {"background": "#8E44AD", "border": "#8E44AD", "highlight": {"border": "#8E44AD"}}, "font": {"color": "white"}, "id": "Wales", "label": "Wales", "shape": "dot", "size": 30}, {"borderWidth": 4, "borderWidthSelected": 8, "color": {"background": "#8E44AD", "border": "#8E44AD", "highlight": {"border": "#8E44AD"}}, "font": {"color": "white"}, "id": "Zambia", "label": "Zambia", "shape": "dot", "size": 30}, {"borderWidth": 4, "borderWidthSelected": 8, "color": {"background": "#FFA500", "border": "#FFA500", "highlight": {"border": "#FFA500"}}, "font": {"color": "white"}, "id": "Louis Cameron Gossett Jr.", "label": "Louis Cameron Gossett Jr.", "shape": "dot", "size": 30}, {"borderWidth": 4, "borderWidthSelected": 8, "color": {"background": "#8E44AD", "border": "#8E44AD", "highlight": {"border": "#8E44AD"}}, "font": {"color": "white"}, "id": "Brooklyn", "label": "Brooklyn", "shape": "dot", "size": 30}, {"borderWidth": 4, "borderWidthSelected": 8, "color": {"background": "#007BFF", "border": "#007BFF", "highlight": {"border": "#007BFF"}}, "font": {"color": "white"}, "id": "New York Knicks", "label": "New York Knicks", "shape": "dot", "size": 30}, {"borderWidth": 4, "borderWidthSelected": 8, "color": {"background": "#FFA500", "border": "#FFA500", "highlight": {"border": "#FFA500"}}, "font": {"color": "white"}, "id": "Dornier", "label": "Dornier", "shape": "dot", "size": 30}, {"borderWidth": 4, "borderWidthSelected": 8, "color": {"background": "#8E44AD", "border": "#8E44AD", "highlight": {"border": "#8E44AD"}}, "font": {"color": "white"}, "id": "Germany", "label": "Germany", "shape": "dot", "size": 30}, {"borderWidth": 4, "borderWidthSelected": 8, "color": {"background": "#007BFF", "border": "#007BFF", "highlight": {"border": "#007BFF"}}, "font": {"color": "white"}, "id": "Berlin University of the Arts", "label": "Berlin University of the Arts", "shape": "dot", "size": 30}, {"borderWidth": 4, "borderWidthSelected": 8, "color": {"background": "#8E44AD", "border": "#8E44AD", "highlight": {"border": "#8E44AD"}}, "font": {"color": "white"}, "id": "Bali", "label": "Bali", "shape": "dot", "size": 30}, {"borderWidth": 4, "borderWidthSelected": 8, "color": {"background": "#8E44AD", "border": "#8E44AD", "highlight": {"border": "#8E44AD"}}, "font": {"color": "white"}, "id": "Indonesia", "label": "Indonesia", "shape": "dot", "size": 30}, {"borderWidth": 4, "borderWidthSelected": 8, "color": {"background": "#FFA500", "border": "#FFA500", "highlight": {"border": "#FFA500"}}, "font": {"color": "white"}, "id": "Kathy Hochul", "label": "Kathy Hochul", "shape": "dot", "size": 30}, {"borderWidth": 4, "borderWidthSelected": 8, "color": {"background": "#FFA500", "border": "#FFA500", "highlight": {"border": "#FFA500"}}, "font": {"color": "white"}, "id": "Michael Mulgrew", "label": "Michael Mulgrew", "shape": "dot", "size": 30}, {"borderWidth": 4, "borderWidthSelected": 8, "color": {"background": "#FFA500", "border": "#FFA500", "highlight": {"border": "#FFA500"}}, "font": {"color": "white"}, "id": "Andrew Gounardes", "label": "Andrew Gounardes", "shape": "dot", "size": 30}, {"borderWidth": 4, "borderWidthSelected": 8, "color": {"background": "#FFA500", "border": "#FFA500", "highlight": {"border": "#FFA500"}}, "font": {"color": "white"}, "id": "Nily Rozic", "label": "Nily Rozic", "shape": "dot", "size": 30}, {"borderWidth": 4, "borderWidthSelected": 8, "color": {"background": "#8E44AD", "border": "#8E44AD", "highlight": {"border": "#8E44AD"}}, "font": {"color": "white"}, "id": "Utah", "label": "Utah", "shape": "dot", "size": 30}, {"borderWidth": 4, "borderWidthSelected": 8, "color": {"background": "#FFA500", "border": "#FFA500", "highlight": {"border": "#FFA500"}}, "font": {"color": "white"}, "id": "Joe Biden", "label": "Joe Biden", "shape": "dot", "size": 30}, {"borderWidth": 4, "borderWidthSelected": 8, "color": {"background": "#FFA500", "border": "#FFA500", "highlight": {"border": "#FFA500"}}, "font": {"color": "white"}, "id": "Merrick Garland", "label": "Merrick Garland", "shape": "dot", "size": 30}, {"borderWidth": 4, "borderWidthSelected": 8, "color": {"background": "#FFA500", "border": "#FFA500", "highlight": {"border": "#FFA500"}}, "font": {"color": "white"}, "id": "Steve Dettelbach", "label": "Steve Dettelbach", "shape": "dot", "size": 30}, {"borderWidth": 4, "borderWidthSelected": 8, "color": {"background": "#007BFF", "border": "#007BFF", "highlight": {"border": "#007BFF"}}, "font": {"color": "white"}, "id": "ATF", "label": "ATF", "shape": "dot", "size": 30}, {"borderWidth": 4, "borderWidthSelected": 8, "color": {"background": "#8E44AD", "border": "#8E44AD", "highlight": {"border": "#8E44AD"}}, "font": {"color": "white"}, "id": "Boulder", "label": "Boulder", "shape": "dot", "size": 30}, {"borderWidth": 4, "borderWidthSelected": 8, "color": {"background": "#8E44AD", "border": "#8E44AD", "highlight": {"border": "#8E44AD"}}, "font": {"color": "white"}, "id": "Colorado", "label": "Colorado", "shape": "dot", "size": 30}, {"borderWidth": 4, "borderWidthSelected": 8, "color": {"background": "#BDC3C7", "border": "#BDC3C7", "highlight": {"border": "#BDC3C7"}}, "font": {"color": "white"}, "id": "X", "label": "X", "shape": "dot", "size": 30}, {"borderWidth": 4, "borderWidthSelected": 8, "color": {"background": "#BDC3C7", "border": "#BDC3C7", "highlight": {"border": "#BDC3C7"}}, "font": {"color": "white"}, "id": "BOE", "label": "BOE", "shape": "dot", "size": 30}, {"borderWidth": 4, "borderWidthSelected": 8, "color": {"background": "#BDC3C7", "border": "#BDC3C7", "highlight": {"border": "#BDC3C7"}}, "font": {"color": "white"}, "id": "Lithuania", "label": "Lithuania", "shape": "dot", "size": 30}, {"borderWidth": 4, "borderWidthSelected": 8, "color": {"background": "#BDC3C7", "border": "#BDC3C7", "highlight": {"border": "#BDC3C7"}}, "font": {"color": "white"}, "id": "Ohio", "label": "Ohio", "shape": "dot", "size": 30}, {"borderWidth": 4, "borderWidthSelected": 8, "color": {"background": "#BDC3C7", "border": "#BDC3C7", "highlight": {"border": "#BDC3C7"}}, "font": {"color": "white"}, "id": "Wagner family", "label": "Wagner family", "shape": "dot", "size": 30}, {"borderWidth": 4, "borderWidthSelected": 8, "color": {"background": "#BDC3C7", "border": "#BDC3C7", "highlight": {"border": "#BDC3C7"}}, "font": {"color": "white"}, "id": "New York University", "label": "New York University", "shape": "dot", "size": 30}, {"borderWidth": 4, "borderWidthSelected": 8, "color": {"background": "#BDC3C7", "border": "#BDC3C7", "highlight": {"border": "#BDC3C7"}}, "font": {"color": "white"}, "id": "New York City", "label": "New York City", "shape": "dot", "size": 30}, {"borderWidth": 4, "borderWidthSelected": 8, "color": {"background": "#BDC3C7", "border": "#BDC3C7", "highlight": {"border": "#BDC3C7"}}, "font": {"color": "white"}, "id": "gun safety legislation", "label": "gun safety legislation", "shape": "dot", "size": 30}, {"borderWidth": 4, "borderWidthSelected": 8, "color": {"background": "#BDC3C7", "border": "#BDC3C7", "highlight": {"border": "#BDC3C7"}}, "font": {"color": "white"}, "id": "gun violence", "label": "gun violence", "shape": "dot", "size": 30}]);
+                  edges = new vis.DataSet([{"arrows": "to", "color": "#E74C3C", "font": {"align": "middle", "color": "white", "size": 14, "strokeColor": "rgba(0,0,0,0)", "vadjust": -10}, "from": "Ventura", "label": "convicted by", "to": "Supreme Court", "width": 5}, {"arrows": "to", "color": "#D3D3D3", "font": {"align": "middle", "color": "white", "size": 14, "strokeColor": "rgba(0,0,0,0)", "vadjust": -10}, "from": "Ventura", "label": "from", "to": "Portugal", "width": 5}, {"arrows": "to", "color": "#D3D3D3", "font": {"align": "middle", "color": "white", "size": 14, "strokeColor": "rgba(0,0,0,0)", "vadjust": -10}, "from": "Chega", "label": "affiliated with", "to": "Ventura", "width": 5}, {"arrows": "to", "color": "#D3D3D3", "font": {"align": "middle", "color": "white", "size": 14, "strokeColor": "rgba(0,0,0,0)", "vadjust": -10}, "from": "New York Times", "label": "works for", "to": "Chalabi", "width": 5}, {"arrows": "to", "color": "#E74C3C", "font": {"align": "middle", "color": "white", "size": 14, "strokeColor": "rgba(0,0,0,0)", "vadjust": -10}, "from": "Israel", "label": "war between", "to": "Palestine", "width": 5}, {"arrows": "to", "color": "#E74C3C", "font": {"align": "middle", "color": "white", "size": 14, "strokeColor": "rgba(0,0,0,0)", "vadjust": -10}, "from": "Barbie", "label": "criticised by", "to": "Daniel Wu", "width": 5}, {"arrows": "to", "color": "#E74C3C", "font": {"align": "middle", "color": "white", "size": 14, "strokeColor": "rgba(0,0,0,0)", "vadjust": -10}, "from": "Shirley Kwan", "label": "signed with", "to": "Universal Music", "width": 5}, {"arrows": "to", "color": "#E74C3C", "font": {"align": "middle", "color": "white", "size": 14, "strokeColor": "rgba(0,0,0,0)", "vadjust": -10}, "from": "Snapchat", "label": "reported by", "to": "NSPCC", "width": 5}, {"arrows": "to", "color": "#E74C3C", "font": {"align": "middle", "color": "white", "size": 14, "strokeColor": "rgba(0,0,0,0)", "vadjust": -10}, "from": "TikTok", "label": "fined by", "to": "ICO", "width": 5}, {"arrows": "to", "color": "#E74C3C", "font": {"align": "middle", "color": "white", "size": 14, "strokeColor": "rgba(0,0,0,0)", "vadjust": -10}, "from": "Gabriel Leyes", "label": "transfer failed to", "to": "Deportivo Binacional", "width": 5}, {"arrows": "to", "color": "#E74C3C", "font": {"align": "middle", "color": "white", "size": 14, "strokeColor": "rgba(0,0,0,0)", "vadjust": -10}, "from": "Gabriel Leyes", "label": "transfer failed to", "to": "Peruvian Liga 1", "width": 5}, {"arrows": "to", "color": "#D3D3D3", "font": {"align": "middle", "color": "white", "size": 14, "strokeColor": "rgba(0,0,0,0)", "vadjust": -10}, "from": "Gabriel Leyes", "label": "left", "to": "Academia Cantolao", "width": 5}, {"arrows": "to", "color": "#E74C3C", "font": {"align": "middle", "color": "white", "size": 14, "strokeColor": "rgba(0,0,0,0)", "vadjust": -10}, "from": "Andrew Tate", "label": "sent to trial in", "to": "Romania", "width": 5}, {"arrows": "to", "color": "#E74C3C", "font": {"align": "middle", "color": "white", "size": 14, "strokeColor": "rgba(0,0,0,0)", "vadjust": -10}, "from": "Tristan Tate", "label": "sent to trial in", "to": "Romania", "width": 5}, {"arrows": "to", "color": "#D3D3D3", "font": {"align": "middle", "color": "white", "size": 14, "strokeColor": "rgba(0,0,0,0)", "vadjust": -10}, "from": "Chew Shou Zi", "label": "ties to", "to": "China", "width": 5}, {"arrows": "to", "color": "#D3D3D3", "font": {"align": "middle", "color": "white", "size": 14, "strokeColor": "rgba(0,0,0,0)", "vadjust": -10}, "from": "Meta", "label": "CEO of", "to": "Chew Shou Zi", "width": 5}, {"arrows": "to", "color": "#D3D3D3", "font": {"align": "middle", "color": "white", "size": 14, "strokeColor": "rgba(0,0,0,0)", "vadjust": -10}, "from": "Linda Yaccarino", "label": "CEO of", "to": "X", "width": 5}, {"arrows": "to", "color": "#D3D3D3", "font": {"align": "middle", "color": "white", "size": 14, "strokeColor": "rgba(0,0,0,0)", "vadjust": -10}, "from": "Snap", "label": "CEO of", "to": "Evan Spiegel", "width": 5}, {"arrows": "to", "color": "#D3D3D3", "font": {"align": "middle", "color": "white", "size": 14, "strokeColor": "rgba(0,0,0,0)", "vadjust": -10}, "from": "Discord", "label": "CEO of", "to": "Jason Citron", "width": 5}, {"arrows": "to", "color": "#D3D3D3", "font": {"align": "middle", "color": "white", "size": 14, "strokeColor": "rgba(0,0,0,0)", "vadjust": -10}, "from": "Tom Cotton", "label": "questioned", "to": "Chew Shou Zi", "width": 5}, {"arrows": "to", "color": "#D3D3D3", "font": {"align": "middle", "color": "white", "size": 14, "strokeColor": "rgba(0,0,0,0)", "vadjust": -10}, "from": "GIC", "label": "from", "to": "Singapore", "width": 5}, {"arrows": "to", "color": "#D3D3D3", "font": {"align": "middle", "color": "white", "size": 14, "strokeColor": "rgba(0,0,0,0)", "vadjust": -10}, "from": "Lim Chow Kiat", "label": "CEO of", "to": "GIC", "width": 5}, {"arrows": "to", "color": "#27AE60", "font": {"align": "middle", "color": "white", "size": 14, "strokeColor": "rgba(0,0,0,0)", "vadjust": -10}, "from": "Lim Chow Kiat", "label": "awarded in", "to": "New York", "width": 5}, {"arrows": "to", "color": "#D3D3D3", "font": {"align": "middle", "color": "white", "size": 14, "strokeColor": "rgba(0,0,0,0)", "vadjust": -10}, "from": "Lee Kin Mun", "label": "from", "to": "Singapore", "width": 5}, {"arrows": "to", "color": "#D3D3D3", "font": {"align": "middle", "color": "white", "size": 14, "strokeColor": "rgba(0,0,0,0)", "vadjust": -10}, "from": "Gwee Li Sui", "label": "from", "to": "Singapore", "width": 5}, {"arrows": "to", "color": "#D3D3D3", "font": {"align": "middle", "color": "white", "size": 14, "strokeColor": "rgba(0,0,0,0)", "vadjust": -10}, "from": "Tharman Shanmugaratnam", "label": "from", "to": "Singapore", "width": 5}, {"arrows": "to", "color": "#D3D3D3", "font": {"align": "middle", "color": "white", "size": 14, "strokeColor": "rgba(0,0,0,0)", "vadjust": -10}, "from": "Vivian Balakrishnan", "label": "from", "to": "Singapore", "width": 5}, {"arrows": "to", "color": "#D3D3D3", "font": {"align": "middle", "color": "white", "size": 14, "strokeColor": "rgba(0,0,0,0)", "vadjust": -10}, "from": "Joseph Schooling", "label": "from", "to": "Singapore", "width": 5}, {"arrows": "to", "color": "#D3D3D3", "font": {"align": "middle", "color": "white", "size": 14, "strokeColor": "rgba(0,0,0,0)", "vadjust": -10}, "from": "JJ Lin", "label": "from", "to": "Singapore", "width": 5}, {"arrows": "to", "color": "#D3D3D3", "font": {"align": "middle", "color": "white", "size": 14, "strokeColor": "rgba(0,0,0,0)", "vadjust": -10}, "from": "Davin Indra", "label": "follows", "to": "ISEAS-Yusof Ishak Institute", "width": 5}, {"arrows": "to", "color": "#D3D3D3", "font": {"align": "middle", "color": "white", "size": 14, "strokeColor": "rgba(0,0,0,0)", "vadjust": -10}, "from": "Michael Kors", "label": "lives in", "to": "New York", "width": 5}, {"arrows": "to", "color": "#D3D3D3", "font": {"align": "middle", "color": "white", "size": 14, "strokeColor": "rgba(0,0,0,0)", "vadjust": -10}, "from": "Michael Kors", "label": "building house in", "to": "Florida", "width": 5}, {"arrows": "to", "color": "#D3D3D3", "font": {"align": "middle", "color": "white", "size": 14, "strokeColor": "rgba(0,0,0,0)", "vadjust": -10}, "from": "Prince of Wales", "label": "orchid named after", "to": "Michael Kors", "width": 5}, {"arrows": "to", "color": "#27AE60", "font": {"align": "middle", "color": "white", "size": 14, "strokeColor": "rgba(0,0,0,0)", "vadjust": -10}, "from": "Felicity Beck", "label": "married to", "to": "Stewart Robertson", "width": 5}, {"arrows": "to", "color": "#D3D3D3", "font": {"align": "middle", "color": "white", "size": 14, "strokeColor": "rgba(0,0,0,0)", "vadjust": -10}, "from": "Felicity Beck", "label": "worked at", "to": "Schwartz Architects", "width": 5}, {"arrows": "to", "color": "#D3D3D3", "font": {"align": "middle", "color": "white", "size": 14, "strokeColor": "rgba(0,0,0,0)", "vadjust": -10}, "from": "Felicity Beck", "label": "worked on projects in", "to": "Staten Island", "width": 5}, {"arrows": "to", "color": "#D3D3D3", "font": {"align": "middle", "color": "white", "size": 14, "strokeColor": "rgba(0,0,0,0)", "vadjust": -10}, "from": "Felicity Beck", "label": "relocated to", "to": "Melbourne", "width": 5}, {"arrows": "to", "color": "#27AE60", "font": {"align": "middle", "color": "white", "size": 14, "strokeColor": "rgba(0,0,0,0)", "vadjust": -10}, "from": "Felicity Beck", "label": "founded", "to": "BAR Studio", "width": 5}, {"arrows": "to", "color": "#D3D3D3", "font": {"align": "middle", "color": "white", "size": 14, "strokeColor": "rgba(0,0,0,0)", "vadjust": -10}, "from": "Felicity Beck", "label": "first commission", "to": "Millennium Hilton Bangkok", "width": 5}, {"arrows": "to", "color": "#D3D3D3", "font": {"align": "middle", "color": "white", "size": 14, "strokeColor": "rgba(0,0,0,0)", "vadjust": -10}, "from": "Felicity Beck", "label": "attended", "to": "FIND Design Fair Asia", "width": 5}, {"arrows": "to", "color": "#D3D3D3", "font": {"align": "middle", "color": "white", "size": 14, "strokeColor": "rgba(0,0,0,0)", "vadjust": -10}, "from": "Ivana Icardi", "label": "resides in", "to": "Mallorca", "width": 5}, {"arrows": "to", "color": "#D3D3D3", "font": {"align": "middle", "color": "white", "size": 14, "strokeColor": "rgba(0,0,0,0)", "vadjust": -10}, "from": "Andres", "label": "plays for", "to": "Real Madrid", "width": 5}, {"arrows": "to", "color": "#E74C3C", "font": {"align": "middle", "color": "white", "size": 14, "strokeColor": "rgba(0,0,0,0)", "vadjust": -10}, "from": "Aitana Bonmati", "label": "misspelt in", "to": "BOE", "width": 5}, {"arrows": "to", "color": "#D3D3D3", "font": {"align": "middle", "color": "white", "size": 14, "strokeColor": "rgba(0,0,0,0)", "vadjust": -10}, "from": "Kira Yarmysh", "label": "spokeswoman for", "to": "Navalny", "width": 5}, {"arrows": "to", "color": "#D3D3D3", "font": {"align": "middle", "color": "white", "size": 14, "strokeColor": "rgba(0,0,0,0)", "vadjust": -10}, "from": "Anna Biryukova", "label": "wife of", "to": "Volkov", "width": 5}, {"arrows": "to", "color": "#E74C3C", "font": {"align": "middle", "color": "white", "size": 14, "strokeColor": "rgba(0,0,0,0)", "vadjust": -10}, "from": "Volkov", "label": "assaulted in", "to": "Vilnius", "width": 5}, {"arrows": "to", "color": "#D3D3D3", "font": {"align": "middle", "color": "white", "size": 14, "strokeColor": "rgba(0,0,0,0)", "vadjust": -10}, "from": "Ramunas Matonis", "label": "from", "to": "Lithuania", "width": 5}, {"arrows": "to", "color": "#D3D3D3", "font": {"align": "middle", "color": "white", "size": 14, "strokeColor": "rgba(0,0,0,0)", "vadjust": -10}, "from": "Warren Buffett", "label": "owns", "to": "Berkshire Hathaway", "width": 5}, {"arrows": "to", "color": "#D3D3D3", "font": {"align": "middle", "color": "white", "size": 14, "strokeColor": "rgba(0,0,0,0)", "vadjust": -10}, "from": "Berkshire Hathaway", "label": "bought stake in", "to": "Media General", "width": 5}, {"arrows": "to", "color": "#D3D3D3", "font": {"align": "middle", "color": "white", "size": 14, "strokeColor": "rgba(0,0,0,0)", "vadjust": -10}, "from": "EDBI", "label": "investment arm of", "to": "Singapore Economic Development Board", "width": 5}, {"arrows": "to", "color": "#27AE60", "font": {"align": "middle", "color": "white", "size": 14, "strokeColor": "rgba(0,0,0,0)", "vadjust": -10}, "from": "EDBI", "label": "invested in", "to": "Sprinklr", "width": 5}, {"arrows": "to", "color": "#27AE60", "font": {"align": "middle", "color": "white", "size": 14, "strokeColor": "rgba(0,0,0,0)", "vadjust": -10}, "from": "Temasek", "label": "invested in", "to": "Sprinklr", "width": 5}, {"arrows": "to", "color": "#D3D3D3", "font": {"align": "middle", "color": "white", "size": 14, "strokeColor": "rgba(0,0,0,0)", "vadjust": -10}, "from": "Sprinklr", "label": "headquartered in", "to": "New York", "width": 5}, {"arrows": "to", "color": "#D3D3D3", "font": {"align": "middle", "color": "white", "size": 14, "strokeColor": "rgba(0,0,0,0)", "vadjust": -10}, "from": "Intel", "label": "client of", "to": "Sprinklr", "width": 5}, {"arrows": "to", "color": "#D3D3D3", "font": {"align": "middle", "color": "white", "size": 14, "strokeColor": "rgba(0,0,0,0)", "vadjust": -10}, "from": "Microsoft", "label": "client of", "to": "Sprinklr", "width": 5}, {"arrows": "to", "color": "#D3D3D3", "font": {"align": "middle", "color": "white", "size": 14, "strokeColor": "rgba(0,0,0,0)", "vadjust": -10}, "from": "Samsung", "label": "client of", "to": "Sprinklr", "width": 5}, {"arrows": "to", "color": "#D3D3D3", "font": {"align": "middle", "color": "white", "size": 14, "strokeColor": "rgba(0,0,0,0)", "vadjust": -10}, "from": "Nike", "label": "client of", "to": "Sprinklr", "width": 5}, {"arrows": "to", "color": "#D3D3D3", "font": {"align": "middle", "color": "white", "size": 14, "strokeColor": "rgba(0,0,0,0)", "vadjust": -10}, "from": "McDonald\u0027s", "label": "client of", "to": "Sprinklr", "width": 5}, {"arrows": "to", "color": "#D3D3D3", "font": {"align": "middle", "color": "white", "size": 14, "strokeColor": "rgba(0,0,0,0)", "vadjust": -10}, "from": "P\u0026G", "label": "client of", "to": "Sprinklr", "width": 5}, {"arrows": "to", "color": "#27AE60", "font": {"align": "middle", "color": "white", "size": 14, "strokeColor": "rgba(0,0,0,0)", "vadjust": -10}, "from": "Ragy Thomas", "label": "founder of", "to": "Sprinklr", "width": 5}, {"arrows": "to", "color": "#E74C3C", "font": {"align": "middle", "color": "white", "size": 14, "strokeColor": "rgba(0,0,0,0)", "vadjust": -10}, "from": "Kanye", "label": "married to", "to": "Kim Kardashian", "width": 5}, {"arrows": "to", "color": "#E74C3C", "font": {"align": "middle", "color": "white", "size": 14, "strokeColor": "rgba(0,0,0,0)", "vadjust": -10}, "from": "British Museum", "label": "requested return from", "to": "Chile", "width": 5}, {"arrows": "to", "color": "#27AE60", "font": {"align": "middle", "color": "white", "size": 14, "strokeColor": "rgba(0,0,0,0)", "vadjust": -10}, "from": "Pete", "label": "business partner of", "to": "Richard Pierce", "width": 5}, {"arrows": "to", "color": "#27AE60", "font": {"align": "middle", "color": "white", "size": 14, "strokeColor": "rgba(0,0,0,0)", "vadjust": -10}, "from": "Pete", "label": "runs", "to": "Lost Loch Spirits", "width": 5}, {"arrows": "to", "color": "#D3D3D3", "font": {"align": "middle", "color": "white", "size": 14, "strokeColor": "rgba(0,0,0,0)", "vadjust": -10}, "from": "Leonard Bernstein", "label": "portrayed in film", "to": "Bradley Cooper", "width": 5}, {"arrows": "to", "color": "#27AE60", "font": {"align": "middle", "color": "white", "size": 14, "strokeColor": "rgba(0,0,0,0)", "vadjust": -10}, "from": "Jamie Bernstein", "label": "defended", "to": "Bradley Cooper", "width": 5}, {"arrows": "to", "color": "#27AE60", "font": {"align": "middle", "color": "white", "size": 14, "strokeColor": "rgba(0,0,0,0)", "vadjust": -10}, "from": "Alexander Bernstein", "label": "defended", "to": "Bradley Cooper", "width": 5}, {"arrows": "to", "color": "#27AE60", "font": {"align": "middle", "color": "white", "size": 14, "strokeColor": "rgba(0,0,0,0)", "vadjust": -10}, "from": "Nina Bernstein", "label": "defended", "to": "Bradley Cooper", "width": 5}, {"arrows": "to", "color": "#E74C3C", "font": {"align": "middle", "color": "white", "size": 14, "strokeColor": "rgba(0,0,0,0)", "vadjust": -10}, "from": "Donna Dawley", "label": "sued", "to": "Meta", "width": 5}, {"arrows": "to", "color": "#E74C3C", "font": {"align": "middle", "color": "white", "size": 14, "strokeColor": "rgba(0,0,0,0)", "vadjust": -10}, "from": "Donna Dawley", "label": "sued", "to": "Snap", "width": 5}, {"arrows": "to", "color": "#E74C3C", "font": {"align": "middle", "color": "white", "size": 14, "strokeColor": "rgba(0,0,0,0)", "vadjust": -10}, "from": "Frances Haugen", "label": "leaked documents from", "to": "Meta", "width": 5}, {"arrows": "to", "color": "#D3D3D3", "font": {"align": "middle", "color": "white", "size": 14, "strokeColor": "rgba(0,0,0,0)", "vadjust": -10}, "from": "Mike DeWine", "label": "Governor of", "to": "Ohio", "width": 5}, {"arrows": "to", "color": "#E74C3C", "font": {"align": "middle", "color": "white", "size": 14, "strokeColor": "rgba(0,0,0,0)", "vadjust": -10}, "from": "George Wagner IV", "label": "member of", "to": "Wagner family", "width": 5}, {"arrows": "to", "color": "#E74C3C", "font": {"align": "middle", "color": "white", "size": 14, "strokeColor": "rgba(0,0,0,0)", "vadjust": -10}, "from": "Rensselaer Polytechnic Institute", "label": "sued", "to": "Daigle Cleaning Systems", "width": 5}, {"arrows": "to", "color": "#E74C3C", "font": {"align": "middle", "color": "white", "size": 14, "strokeColor": "rgba(0,0,0,0)", "vadjust": -10}, "from": "Alex Mashinsky", "label": "founder of", "to": "Celsius Network", "width": 5}, {"arrows": "to", "color": "#E74C3C", "font": {"align": "middle", "color": "white", "size": 14, "strokeColor": "rgba(0,0,0,0)", "vadjust": -10}, "from": "Alex Mashinsky", "label": "accused by", "to": "Letitia James", "width": 5}, {"arrows": "to", "color": "#E74C3C", "font": {"align": "middle", "color": "white", "size": 14, "strokeColor": "rgba(0,0,0,0)", "vadjust": -10}, "from": "Margaret Chan", "label": "ruled against", "to": "Alex Mashinsky", "width": 5}, {"arrows": "to", "color": "#27AE60", "font": {"align": "middle", "color": "white", "size": 14, "strokeColor": "rgba(0,0,0,0)", "vadjust": -10}, "from": "Vaughan Gething", "label": "first minister of", "to": "Wales", "width": 5}, {"arrows": "to", "color": "#D3D3D3", "font": {"align": "middle", "color": "white", "size": 14, "strokeColor": "rgba(0,0,0,0)", "vadjust": -10}, "from": "Vaughan Gething", "label": "born in", "to": "Zambia", "width": 5}, {"arrows": "to", "color": "#D3D3D3", "font": {"align": "middle", "color": "white", "size": 14, "strokeColor": "rgba(0,0,0,0)", "vadjust": -10}, "from": "Louis Cameron Gossett Jr.", "label": "born in", "to": "Brooklyn", "width": 5}, {"arrows": "to", "color": "#D3D3D3", "font": {"align": "middle", "color": "white", "size": 14, "strokeColor": "rgba(0,0,0,0)", "vadjust": -10}, "from": "Louis Cameron Gossett Jr.", "label": "attended", "to": "New York University", "width": 5}, {"arrows": "to", "color": "#D3D3D3", "font": {"align": "middle", "color": "white", "size": 14, "strokeColor": "rgba(0,0,0,0)", "vadjust": -10}, "from": "Louis Cameron Gossett Jr.", "label": "invited to", "to": "New York Knicks", "width": 5}, {"arrows": "to", "color": "#D3D3D3", "font": {"align": "middle", "color": "white", "size": 14, "strokeColor": "rgba(0,0,0,0)", "vadjust": -10}, "from": "Dornier", "label": "born in", "to": "Germany", "width": 5}, {"arrows": "to", "color": "#D3D3D3", "font": {"align": "middle", "color": "white", "size": 14, "strokeColor": "rgba(0,0,0,0)", "vadjust": -10}, "from": "Dornier", "label": "studied at", "to": "Berlin University of the Arts", "width": 5}, {"arrows": "to", "color": "#D3D3D3", "font": {"align": "middle", "color": "white", "size": 14, "strokeColor": "rgba(0,0,0,0)", "vadjust": -10}, "from": "Dornier", "label": "relocated to", "to": "New York City", "width": 5}, {"arrows": "to", "color": "#D3D3D3", "font": {"align": "middle", "color": "white", "size": 14, "strokeColor": "rgba(0,0,0,0)", "vadjust": -10}, "from": "Dornier", "label": "relocated to", "to": "Bali", "width": 5}, {"arrows": "to", "color": "#D3D3D3", "font": {"align": "middle", "color": "white", "size": 14, "strokeColor": "rgba(0,0,0,0)", "vadjust": -10}, "from": "Dornier", "label": "in", "to": "Indonesia", "width": 5}, {"arrows": "to", "color": "#D3D3D3", "font": {"align": "middle", "color": "white", "size": 14, "strokeColor": "rgba(0,0,0,0)", "vadjust": -10}, "from": "Kathy Hochul", "label": "governor of", "to": "New York", "width": 5}, {"arrows": "to", "color": "#D3D3D3", "font": {"align": "middle", "color": "white", "size": 14, "strokeColor": "rgba(0,0,0,0)", "vadjust": -10}, "from": "Letitia James", "label": "Attorney General of", "to": "New York", "width": 5}, {"arrows": "to", "color": "#D3D3D3", "font": {"align": "middle", "color": "white", "size": 14, "strokeColor": "rgba(0,0,0,0)", "vadjust": -10}, "from": "Joe Biden", "label": "signed", "to": "gun safety legislation", "width": 5}, {"arrows": "to", "color": "#D3D3D3", "font": {"align": "middle", "color": "white", "size": 14, "strokeColor": "rgba(0,0,0,0)", "vadjust": -10}, "from": "Merrick Garland", "label": "director of", "to": "ATF", "width": 5}, {"arrows": "to", "color": "#D3D3D3", "font": {"align": "middle", "color": "white", "size": 14, "strokeColor": "rgba(0,0,0,0)", "vadjust": -10}, "from": "Merrick Garland", "label": "aimed at curbing", "to": "gun violence", "width": 5}, {"arrows": "to", "color": "#D3D3D3", "font": {"align": "middle", "color": "white", "size": 14, "strokeColor": "rgba(0,0,0,0)", "vadjust": -10}, "from": "Steve Dettelbach", "label": "director of", "to": "ATF", "width": 5}]);
+
+                  nodeColors = {};
+                  allNodes = nodes.get({ returnType: "Object" });
+                  for (nodeId in allNodes) {
+                    nodeColors[nodeId] = allNodes[nodeId].color;
+                  }
+                  allEdges = edges.get({ returnType: "Object" });
+                  // adding nodes and edges to the graph
+                  data = {nodes: nodes, edges: edges};
+
+                  var options = {"physics": {"barnesHut": {"gravitationalConstant": -5050, "centralGravity": 0.75, "springLength": 180, "damping": 0.5, "avoidOverlap": 1}}};
+
+                  
+
+
+                  
+
+                  network = new vis.Network(container, data, options);
+
+                  
+
+                  
+
+                  
+
+
+                  
+                      network.on("stabilizationProgress", function(params) {
+                          document.getElementById('loadingBar').removeAttribute("style");
+                          var maxWidth = 496;
+                          var minWidth = 20;
+                          var widthFactor = params.iterations/params.total;
+                          var width = Math.max(minWidth,maxWidth * widthFactor);
+                          document.getElementById('bar').style.width = width + 'px';
+                          document.getElementById('text').innerHTML = Math.round(widthFactor*100) + '%';
+                      });
+                      network.once("stabilizationIterationsDone", function() {
+                          document.getElementById('text').innerHTML = '100%';
+                          document.getElementById('bar').style.width = '496px';
+                          document.getElementById('loadingBar').style.opacity = 0;
+                          // really clean the dom element
+                          setTimeout(function () {document.getElementById('loadingBar').style.display = 'none';}, 500);
+                      });
+                  
+
+                  return network;
+
+              }
+              drawGraph();
+        </script>
+    </body>
+</html>
+    <style>
+        .legend {
+            position: absolute;
+            top: 20px;
+            right: 20px;
+            background: white;
+            padding: 10px;
+            border-radius: 5px;
+            font-size: 14px;
+            font-family: Arial, sans-serif;
+            z-index: 1000;
+        }
+        .legend-item {
+            display: flex;
+            align-items: center;
+            margin-bottom: 5px;
+        }
+        .legend-color {
+            width: 15px;
+            height: 15px;
+            margin-right: 5px;
+            border-radius: 3px;
+        }
+    </style>
+    <div class="legend">
+        <strong>Legend</strong>
+        <div class="legend-item"><div class="legend-color" style="background:#FFA500"></div>Person (PER)</div>
+        <div class="legend-item"><div class="legend-color" style="background:#007BFF"></div>Organisation (ORG)</div>
+        <div class="legend-item"><div class="legend-color" style="background:#8E44AD"></div>Location (LOC)</div>
+        <div class="legend-item"><div class="legend-color" style="background:#1ABC9C"></div>Event (EVT)</div>
+        <div class="legend-item"><div class="legend-color" style="background:#BDC3C7"></div>Miscellaneous (MISC)</div>
+        <hr>
+        <div class="legend-item"><div class="legend-color" style="background:#27AE60"></div>Positive (PV)</div>
+        <div class="legend-item"><div class="legend-color" style="background:#E74C3C"></div>Negative (NG)</div>
+        <div class="legend-item"><div class="legend-color" style="background:#D3D3D3"></div>Neutral (NE)</div>
+    </div>
+    

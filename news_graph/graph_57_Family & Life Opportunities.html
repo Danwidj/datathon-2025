@@ -1,0 +1,358 @@
+<html>
+    <head>
+        <meta charset="utf-8">
+        
+            <script>function neighbourhoodHighlight(params) {
+  // console.log("in nieghbourhoodhighlight");
+  allNodes = nodes.get({ returnType: "Object" });
+  // originalNodes = JSON.parse(JSON.stringify(allNodes));
+  // if something is selected:
+  if (params.nodes.length > 0) {
+    highlightActive = true;
+    var i, j;
+    var selectedNode = params.nodes[0];
+    var degrees = 2;
+
+    // mark all nodes as hard to read.
+    for (let nodeId in allNodes) {
+      // nodeColors[nodeId] = allNodes[nodeId].color;
+      allNodes[nodeId].color = "rgba(200,200,200,0.5)";
+      if (allNodes[nodeId].hiddenLabel === undefined) {
+        allNodes[nodeId].hiddenLabel = allNodes[nodeId].label;
+        allNodes[nodeId].label = undefined;
+      }
+    }
+    var connectedNodes = network.getConnectedNodes(selectedNode);
+    var allConnectedNodes = [];
+
+    // get the second degree nodes
+    for (i = 1; i < degrees; i++) {
+      for (j = 0; j < connectedNodes.length; j++) {
+        allConnectedNodes = allConnectedNodes.concat(
+          network.getConnectedNodes(connectedNodes[j])
+        );
+      }
+    }
+
+    // all second degree nodes get a different color and their label back
+    for (i = 0; i < allConnectedNodes.length; i++) {
+      // allNodes[allConnectedNodes[i]].color = "pink";
+      allNodes[allConnectedNodes[i]].color = "rgba(150,150,150,0.75)";
+      if (allNodes[allConnectedNodes[i]].hiddenLabel !== undefined) {
+        allNodes[allConnectedNodes[i]].label =
+          allNodes[allConnectedNodes[i]].hiddenLabel;
+        allNodes[allConnectedNodes[i]].hiddenLabel = undefined;
+      }
+    }
+
+    // all first degree nodes get their own color and their label back
+    for (i = 0; i < connectedNodes.length; i++) {
+      // allNodes[connectedNodes[i]].color = undefined;
+      allNodes[connectedNodes[i]].color = nodeColors[connectedNodes[i]];
+      if (allNodes[connectedNodes[i]].hiddenLabel !== undefined) {
+        allNodes[connectedNodes[i]].label =
+          allNodes[connectedNodes[i]].hiddenLabel;
+        allNodes[connectedNodes[i]].hiddenLabel = undefined;
+      }
+    }
+
+    // the main node gets its own color and its label back.
+    // allNodes[selectedNode].color = undefined;
+    allNodes[selectedNode].color = nodeColors[selectedNode];
+    if (allNodes[selectedNode].hiddenLabel !== undefined) {
+      allNodes[selectedNode].label = allNodes[selectedNode].hiddenLabel;
+      allNodes[selectedNode].hiddenLabel = undefined;
+    }
+  } else if (highlightActive === true) {
+    // console.log("highlightActive was true");
+    // reset all nodes
+    for (let nodeId in allNodes) {
+      // allNodes[nodeId].color = "purple";
+      allNodes[nodeId].color = nodeColors[nodeId];
+      // delete allNodes[nodeId].color;
+      if (allNodes[nodeId].hiddenLabel !== undefined) {
+        allNodes[nodeId].label = allNodes[nodeId].hiddenLabel;
+        allNodes[nodeId].hiddenLabel = undefined;
+      }
+    }
+    highlightActive = false;
+  }
+
+  // transform the object into an array
+  var updateArray = [];
+  if (params.nodes.length > 0) {
+    for (let nodeId in allNodes) {
+      if (allNodes.hasOwnProperty(nodeId)) {
+        // console.log(allNodes[nodeId]);
+        updateArray.push(allNodes[nodeId]);
+      }
+    }
+    nodes.update(updateArray);
+  } else {
+    // console.log("Nothing was selected");
+    for (let nodeId in allNodes) {
+      if (allNodes.hasOwnProperty(nodeId)) {
+        // console.log(allNodes[nodeId]);
+        // allNodes[nodeId].color = {};
+        updateArray.push(allNodes[nodeId]);
+      }
+    }
+    nodes.update(updateArray);
+  }
+}
+
+function filterHighlight(params) {
+  allNodes = nodes.get({ returnType: "Object" });
+  // if something is selected:
+  if (params.nodes.length > 0) {
+    filterActive = true;
+    let selectedNodes = params.nodes;
+
+    // hiding all nodes and saving the label
+    for (let nodeId in allNodes) {
+      allNodes[nodeId].hidden = true;
+      if (allNodes[nodeId].savedLabel === undefined) {
+        allNodes[nodeId].savedLabel = allNodes[nodeId].label;
+        allNodes[nodeId].label = undefined;
+      }
+    }
+
+    for (let i=0; i < selectedNodes.length; i++) {
+      allNodes[selectedNodes[i]].hidden = false;
+      if (allNodes[selectedNodes[i]].savedLabel !== undefined) {
+        allNodes[selectedNodes[i]].label = allNodes[selectedNodes[i]].savedLabel;
+        allNodes[selectedNodes[i]].savedLabel = undefined;
+      }
+    }
+
+  } else if (filterActive === true) {
+    // reset all nodes
+    for (let nodeId in allNodes) {
+      allNodes[nodeId].hidden = false;
+      if (allNodes[nodeId].savedLabel !== undefined) {
+        allNodes[nodeId].label = allNodes[nodeId].savedLabel;
+        allNodes[nodeId].savedLabel = undefined;
+      }
+    }
+    filterActive = false;
+  }
+
+  // transform the object into an array
+  var updateArray = [];
+  if (params.nodes.length > 0) {
+    for (let nodeId in allNodes) {
+      if (allNodes.hasOwnProperty(nodeId)) {
+        updateArray.push(allNodes[nodeId]);
+      }
+    }
+    nodes.update(updateArray);
+  } else {
+    for (let nodeId in allNodes) {
+      if (allNodes.hasOwnProperty(nodeId)) {
+        updateArray.push(allNodes[nodeId]);
+      }
+    }
+    nodes.update(updateArray);
+  }
+}
+
+function selectNode(nodes) {
+  network.selectNodes(nodes);
+  neighbourhoodHighlight({ nodes: nodes });
+  return nodes;
+}
+
+function selectNodes(nodes) {
+  network.selectNodes(nodes);
+  filterHighlight({nodes: nodes});
+  return nodes;
+}
+
+function highlightFilter(filter) {
+  let selectedNodes = []
+  let selectedProp = filter['property']
+  if (filter['item'] === 'node') {
+    let allNodes = nodes.get({ returnType: "Object" });
+    for (let nodeId in allNodes) {
+      if (allNodes[nodeId][selectedProp] && filter['value'].includes((allNodes[nodeId][selectedProp]).toString())) {
+        selectedNodes.push(nodeId)
+      }
+    }
+  }
+  else if (filter['item'] === 'edge'){
+    let allEdges = edges.get({returnType: 'object'});
+    // check if the selected property exists for selected edge and select the nodes connected to the edge
+    for (let edge in allEdges) {
+      if (allEdges[edge][selectedProp] && filter['value'].includes((allEdges[edge][selectedProp]).toString())) {
+        selectedNodes.push(allEdges[edge]['from'])
+        selectedNodes.push(allEdges[edge]['to'])
+      }
+    }
+  }
+  selectNodes(selectedNodes)
+}</script>
+            <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/vis-network/9.1.2/dist/dist/vis-network.min.css" integrity="sha512-WgxfT5LWjfszlPHXRmBWHkV2eceiWTOBvrKCNbdgDYTHrT2AeLCGbF4sZlZw3UMN3WtL0tGUoIAKsu8mllg/XA==" crossorigin="anonymous" referrerpolicy="no-referrer" />
+            <script src="https://cdnjs.cloudflare.com/ajax/libs/vis-network/9.1.2/dist/vis-network.min.js" integrity="sha512-LnvoEWDFrqGHlHmDD2101OrLcbsfkrzoSpvtSQtxK3RMnRV0eOkhhBN2dXHKRrUU8p2DGRTk35n4O8nWSVe1mQ==" crossorigin="anonymous" referrerpolicy="no-referrer"></script>
+            
+            
+            
+            
+            
+            
+
+        
+<center>
+<h1></h1>
+</center>
+
+<!-- <link rel="stylesheet" href="../node_modules/vis/dist/vis.min.css" type="text/css" />
+<script type="text/javascript" src="../node_modules/vis/dist/vis.js"> </script>-->
+        <link
+          href="https://cdn.jsdelivr.net/npm/bootstrap@5.0.0-beta3/dist/css/bootstrap.min.css"
+          rel="stylesheet"
+          integrity="sha384-eOJMYsd53ii+scO/bJGFsiCZc+5NDVN2yr8+0RDqr0Ql0h+rP48ckxlpbzKgwra6"
+          crossorigin="anonymous"
+        />
+        <script
+          src="https://cdn.jsdelivr.net/npm/bootstrap@5.0.0-beta3/dist/js/bootstrap.bundle.min.js"
+          integrity="sha384-JEW9xMcG8R+pH31jmWH6WWP0WintQrMb4s7ZOdauHnUtxwoG2vI5DkLtS3qm9Ekf"
+          crossorigin="anonymous"
+        ></script>
+
+
+        <center>
+          <h1></h1>
+        </center>
+        <style type="text/css">
+
+             #mynetwork {
+                 width: 100%;
+                 height: 100vh;
+                 background-color: #222222;
+                 border: 1px solid lightgray;
+                 position: relative;
+                 float: left;
+             }
+
+             
+
+             
+
+             
+        </style>
+    </head>
+
+
+    <body>
+        <div class="card" style="width: 100%">
+            
+            
+            <div id="mynetwork" class="card-body"></div>
+        </div>
+
+        
+        
+
+        <script type="text/javascript">
+
+              // initialize global variables.
+              var edges;
+              var nodes;
+              var allNodes;
+              var allEdges;
+              var nodeColors;
+              var originalNodes;
+              var network;
+              var container;
+              var options, data;
+              var filter = {
+                  item : '',
+                  property : '',
+                  value : []
+              };
+
+              
+
+              
+
+              // This method is responsible for drawing the graph, returns the drawn network
+              function drawGraph() {
+                  var container = document.getElementById('mynetwork');
+
+                  
+
+                  // parsing and collecting nodes and edges from the python
+                  nodes = new vis.DataSet([{"borderWidth": 4, "borderWidthSelected": 8, "color": {"background": "#FFA500", "border": "#FFA500", "highlight": {"border": "#FFA500"}}, "font": {"color": "white"}, "id": "Goy Zhenru", "label": "Goy Zhenru", "shape": "dot", "size": 30}, {"borderWidth": 4, "borderWidthSelected": 8, "color": {"background": "#007BFF", "border": "#007BFF", "highlight": {"border": "#007BFF"}}, "font": {"color": "white"}, "id": "Goy Architects", "label": "Goy Architects", "shape": "dot", "size": 30}, {"borderWidth": 4, "borderWidthSelected": 8, "color": {"background": "#007BFF", "border": "#007BFF", "highlight": {"border": "#007BFF"}}, "font": {"color": "white"}, "id": "Hotel Everest View", "label": "Hotel Everest View", "shape": "dot", "size": 30}, {"borderWidth": 4, "borderWidthSelected": 8, "color": {"background": "#FFA500", "border": "#FFA500", "highlight": {"border": "#FFA500"}}, "font": {"color": "white"}, "id": "Sonia Miyahara", "label": "Sonia Miyahara", "shape": "dot", "size": 30}, {"borderWidth": 4, "borderWidthSelected": 8, "color": {"background": "#FFA500", "border": "#FFA500", "highlight": {"border": "#FFA500"}}, "font": {"color": "white"}, "id": "Takashi Miyahara", "label": "Takashi Miyahara", "shape": "dot", "size": 30}, {"borderWidth": 4, "borderWidthSelected": 8, "color": {"background": "#FFA500", "border": "#FFA500", "highlight": {"border": "#FFA500"}}, "font": {"color": "white"}, "id": "Yoshinobu Kumagaya", "label": "Yoshinobu Kumagaya", "shape": "dot", "size": 30}, {"borderWidth": 4, "borderWidthSelected": 8, "color": {"background": "#8E44AD", "border": "#8E44AD", "highlight": {"border": "#8E44AD"}}, "font": {"color": "white"}, "id": "Syangboche", "label": "Syangboche", "shape": "dot", "size": 30}, {"borderWidth": 4, "borderWidthSelected": 8, "color": {"background": "#8E44AD", "border": "#8E44AD", "highlight": {"border": "#8E44AD"}}, "font": {"color": "white"}, "id": "Nepal", "label": "Nepal", "shape": "dot", "size": 30}, {"borderWidth": 4, "borderWidthSelected": 8, "color": {"background": "#8E44AD", "border": "#8E44AD", "highlight": {"border": "#8E44AD"}}, "font": {"color": "white"}, "id": "Kumbu", "label": "Kumbu", "shape": "dot", "size": 30}, {"borderWidth": 4, "borderWidthSelected": 8, "color": {"background": "#8E44AD", "border": "#8E44AD", "highlight": {"border": "#8E44AD"}}, "font": {"color": "white"}, "id": "Sagarmatha National Park", "label": "Sagarmatha National Park", "shape": "dot", "size": 30}, {"borderWidth": 4, "borderWidthSelected": 8, "color": {"background": "#8E44AD", "border": "#8E44AD", "highlight": {"border": "#8E44AD"}}, "font": {"color": "white"}, "id": "Singapore", "label": "Singapore", "shape": "dot", "size": 30}, {"borderWidth": 4, "borderWidthSelected": 8, "color": {"background": "#8E44AD", "border": "#8E44AD", "highlight": {"border": "#8E44AD"}}, "font": {"color": "white"}, "id": "Japan", "label": "Japan", "shape": "dot", "size": 30}, {"borderWidth": 4, "borderWidthSelected": 8, "color": {"background": "#007BFF", "border": "#007BFF", "highlight": {"border": "#007BFF"}}, "font": {"color": "white"}, "id": "Ingen Kyoto", "label": "Ingen Kyoto", "shape": "dot", "size": 30}, {"borderWidth": 4, "borderWidthSelected": 8, "color": {"background": "#007BFF", "border": "#007BFF", "highlight": {"border": "#007BFF"}}, "font": {"color": "white"}, "id": "Hvala", "label": "Hvala", "shape": "dot", "size": 30}, {"borderWidth": 4, "borderWidthSelected": 8, "color": {"background": "#007BFF", "border": "#007BFF", "highlight": {"border": "#007BFF"}}, "font": {"color": "white"}, "id": "ION Orchard", "label": "ION Orchard", "shape": "dot", "size": 30}, {"borderWidth": 4, "borderWidthSelected": 8, "color": {"background": "#FFA500", "border": "#FFA500", "highlight": {"border": "#FFA500"}}, "font": {"color": "white"}, "id": "Madhusree Mukerjee", "label": "Madhusree Mukerjee", "shape": "dot", "size": 30}, {"borderWidth": 4, "borderWidthSelected": 8, "color": {"background": "#007BFF", "border": "#007BFF", "highlight": {"border": "#007BFF"}}, "font": {"color": "white"}, "id": "Scientific American", "label": "Scientific American", "shape": "dot", "size": 30}, {"borderWidth": 4, "borderWidthSelected": 8, "color": {"background": "#8E44AD", "border": "#8E44AD", "highlight": {"border": "#8E44AD"}}, "font": {"color": "white"}, "id": "Kolkata", "label": "Kolkata", "shape": "dot", "size": 30}, {"borderWidth": 4, "borderWidthSelected": 8, "color": {"background": "#8E44AD", "border": "#8E44AD", "highlight": {"border": "#8E44AD"}}, "font": {"color": "white"}, "id": "Andaman Islands", "label": "Andaman Islands", "shape": "dot", "size": 30}, {"borderWidth": 4, "borderWidthSelected": 8, "color": {"background": "#007BFF", "border": "#007BFF", "highlight": {"border": "#007BFF"}}, "font": {"color": "white"}, "id": "Sentinelese", "label": "Sentinelese", "shape": "dot", "size": 30}, {"borderWidth": 4, "borderWidthSelected": 8, "color": {"background": "#FFA500", "border": "#FFA500", "highlight": {"border": "#FFA500"}}, "font": {"color": "white"}, "id": "La\u00e9rcio Souza Silva Guajajara", "label": "La\u00e9rcio Souza Silva Guajajara", "shape": "dot", "size": 30}, {"borderWidth": 4, "borderWidthSelected": 8, "color": {"background": "#FFA500", "border": "#FFA500", "highlight": {"border": "#FFA500"}}, "font": {"color": "white"}, "id": "Tainaky", "label": "Tainaky", "shape": "dot", "size": 30}, {"borderWidth": 4, "borderWidthSelected": 8, "color": {"background": "#FFA500", "border": "#FFA500", "highlight": {"border": "#FFA500"}}, "font": {"color": "white"}, "id": "Ajareaty Waiapi", "label": "Ajareaty Waiapi", "shape": "dot", "size": 30}, {"borderWidth": 4, "borderWidthSelected": 8, "color": {"background": "#007BFF", "border": "#007BFF", "highlight": {"border": "#007BFF"}}, "font": {"color": "white"}, "id": "Waiapi", "label": "Waiapi", "shape": "dot", "size": 30}, {"borderWidth": 4, "borderWidthSelected": 8, "color": {"background": "#8E44AD", "border": "#8E44AD", "highlight": {"border": "#8E44AD"}}, "font": {"color": "white"}, "id": "Amapa", "label": "Amapa", "shape": "dot", "size": 30}, {"borderWidth": 4, "borderWidthSelected": 8, "color": {"background": "#8E44AD", "border": "#8E44AD", "highlight": {"border": "#8E44AD"}}, "font": {"color": "white"}, "id": "Brazil", "label": "Brazil", "shape": "dot", "size": 30}, {"borderWidth": 4, "borderWidthSelected": 8, "color": {"background": "#FFA500", "border": "#FFA500", "highlight": {"border": "#FFA500"}}, "font": {"color": "white"}, "id": "Martin", "label": "Martin", "shape": "dot", "size": 30}, {"borderWidth": 4, "borderWidthSelected": 8, "color": {"background": "#8E44AD", "border": "#8E44AD", "highlight": {"border": "#8E44AD"}}, "font": {"color": "white"}, "id": "Contamana", "label": "Contamana", "shape": "dot", "size": 30}, {"borderWidth": 4, "borderWidthSelected": 8, "color": {"background": "#8E44AD", "border": "#8E44AD", "highlight": {"border": "#8E44AD"}}, "font": {"color": "white"}, "id": "Peru", "label": "Peru", "shape": "dot", "size": 30}, {"borderWidth": 4, "borderWidthSelected": 8, "color": {"background": "#FFA500", "border": "#FFA500", "highlight": {"border": "#FFA500"}}, "font": {"color": "white"}, "id": "Pablo Maniguaje", "label": "Pablo Maniguaje", "shape": "dot", "size": 30}, {"borderWidth": 4, "borderWidthSelected": 8, "color": {"background": "#007BFF", "border": "#007BFF", "highlight": {"border": "#007BFF"}}, "font": {"color": "white"}, "id": "Siona", "label": "Siona", "shape": "dot", "size": 30}, {"borderWidth": 4, "borderWidthSelected": 8, "color": {"background": "#8E44AD", "border": "#8E44AD", "highlight": {"border": "#8E44AD"}}, "font": {"color": "white"}, "id": "Putumayo River", "label": "Putumayo River", "shape": "dot", "size": 30}, {"borderWidth": 4, "borderWidthSelected": 8, "color": {"background": "#007BFF", "border": "#007BFF", "highlight": {"border": "#007BFF"}}, "font": {"color": "white"}, "id": "Amerisur Resources", "label": "Amerisur Resources", "shape": "dot", "size": 30}, {"borderWidth": 4, "borderWidthSelected": 8, "color": {"background": "#FFA500", "border": "#FFA500", "highlight": {"border": "#FFA500"}}, "font": {"color": "white"}, "id": "Kevin Jensvold", "label": "Kevin Jensvold", "shape": "dot", "size": 30}, {"borderWidth": 4, "borderWidthSelected": 8, "color": {"background": "#007BFF", "border": "#007BFF", "highlight": {"border": "#007BFF"}}, "font": {"color": "white"}, "id": "Upper Sioux Community", "label": "Upper Sioux Community", "shape": "dot", "size": 30}, {"borderWidth": 4, "borderWidthSelected": 8, "color": {"background": "#8E44AD", "border": "#8E44AD", "highlight": {"border": "#8E44AD"}}, "font": {"color": "white"}, "id": "Minnesota", "label": "Minnesota", "shape": "dot", "size": 30}, {"borderWidth": 4, "borderWidthSelected": 8, "color": {"background": "#007BFF", "border": "#007BFF", "highlight": {"border": "#007BFF"}}, "font": {"color": "white"}, "id": "Dakota", "label": "Dakota", "shape": "dot", "size": 30}, {"borderWidth": 4, "borderWidthSelected": 8, "color": {"background": "#007BFF", "border": "#007BFF", "highlight": {"border": "#007BFF"}}, "font": {"color": "white"}, "id": "Esselen tribe", "label": "Esselen tribe", "shape": "dot", "size": 30}, {"borderWidth": 4, "borderWidthSelected": 8, "color": {"background": "#8E44AD", "border": "#8E44AD", "highlight": {"border": "#8E44AD"}}, "font": {"color": "white"}, "id": "Monterey county", "label": "Monterey county", "shape": "dot", "size": 30}, {"borderWidth": 4, "borderWidthSelected": 8, "color": {"background": "#FFA500", "border": "#FFA500", "highlight": {"border": "#FFA500"}}, "font": {"color": "white"}, "id": "Tom Little Bear Nason", "label": "Tom Little Bear Nason", "shape": "dot", "size": 30}, {"borderWidth": 4, "borderWidthSelected": 8, "color": {"background": "#007BFF", "border": "#007BFF", "highlight": {"border": "#007BFF"}}, "font": {"color": "white"}, "id": "Batek", "label": "Batek", "shape": "dot", "size": 30}, {"borderWidth": 4, "borderWidthSelected": 8, "color": {"background": "#8E44AD", "border": "#8E44AD", "highlight": {"border": "#8E44AD"}}, "font": {"color": "white"}, "id": "Malaysia", "label": "Malaysia", "shape": "dot", "size": 30}, {"borderWidth": 4, "borderWidthSelected": 8, "color": {"background": "#8E44AD", "border": "#8E44AD", "highlight": {"border": "#8E44AD"}}, "font": {"color": "white"}, "id": "Kelantan rainforest", "label": "Kelantan rainforest", "shape": "dot", "size": 30}, {"borderWidth": 4, "borderWidthSelected": 8, "color": {"background": "#FFA500", "border": "#FFA500", "highlight": {"border": "#FFA500"}}, "font": {"color": "white"}, "id": "Adidas Om", "label": "Adidas Om", "shape": "dot", "size": 30}, {"borderWidth": 4, "borderWidthSelected": 8, "color": {"background": "#8E44AD", "border": "#8E44AD", "highlight": {"border": "#8E44AD"}}, "font": {"color": "white"}, "id": "Kuala Koh", "label": "Kuala Koh", "shape": "dot", "size": 30}, {"borderWidth": 4, "borderWidthSelected": 8, "color": {"background": "#8E44AD", "border": "#8E44AD", "highlight": {"border": "#8E44AD"}}, "font": {"color": "white"}, "id": "Kuala Krai hospital", "label": "Kuala Krai hospital", "shape": "dot", "size": 30}, {"borderWidth": 4, "borderWidthSelected": 8, "color": {"background": "#FFA500", "border": "#FFA500", "highlight": {"border": "#FFA500"}}, "font": {"color": "white"}, "id": "Scott Schuyler", "label": "Scott Schuyler", "shape": "dot", "size": 30}, {"borderWidth": 4, "borderWidthSelected": 8, "color": {"background": "#007BFF", "border": "#007BFF", "highlight": {"border": "#007BFF"}}, "font": {"color": "white"}, "id": "Upper Skagit Indian tribe", "label": "Upper Skagit Indian tribe", "shape": "dot", "size": 30}, {"borderWidth": 4, "borderWidthSelected": 8, "color": {"background": "#8E44AD", "border": "#8E44AD", "highlight": {"border": "#8E44AD"}}, "font": {"color": "white"}, "id": "Skagit River", "label": "Skagit River", "shape": "dot", "size": 30}, {"borderWidth": 4, "borderWidthSelected": 8, "color": {"background": "#8E44AD", "border": "#8E44AD", "highlight": {"border": "#8E44AD"}}, "font": {"color": "white"}, "id": "Washington", "label": "Washington", "shape": "dot", "size": 30}, {"borderWidth": 4, "borderWidthSelected": 8, "color": {"background": "#8E44AD", "border": "#8E44AD", "highlight": {"border": "#8E44AD"}}, "font": {"color": "white"}, "id": "Seattle", "label": "Seattle", "shape": "dot", "size": 30}, {"borderWidth": 4, "borderWidthSelected": 8, "color": {"background": "#FFA500", "border": "#FFA500", "highlight": {"border": "#FFA500"}}, "font": {"color": "white"}, "id": "O\u2019Rourke", "label": "O\u2019Rourke", "shape": "dot", "size": 30}, {"borderWidth": 4, "borderWidthSelected": 8, "color": {"background": "#007BFF", "border": "#007BFF", "highlight": {"border": "#007BFF"}}, "font": {"color": "white"}, "id": "Yurok", "label": "Yurok", "shape": "dot", "size": 30}, {"borderWidth": 4, "borderWidthSelected": 8, "color": {"background": "#8E44AD", "border": "#8E44AD", "highlight": {"border": "#8E44AD"}}, "font": {"color": "white"}, "id": "Klamath mountains", "label": "Klamath mountains", "shape": "dot", "size": 30}, {"borderWidth": 4, "borderWidthSelected": 8, "color": {"background": "#8E44AD", "border": "#8E44AD", "highlight": {"border": "#8E44AD"}}, "font": {"color": "white"}, "id": "California", "label": "California", "shape": "dot", "size": 30}, {"borderWidth": 4, "borderWidthSelected": 8, "color": {"background": "#007BFF", "border": "#007BFF", "highlight": {"border": "#007BFF"}}, "font": {"color": "white"}, "id": "Yurok Cultural Fire Management Council", "label": "Yurok Cultural Fire Management Council", "shape": "dot", "size": 30}, {"borderWidth": 4, "borderWidthSelected": 8, "color": {"background": "#007BFF", "border": "#007BFF", "highlight": {"border": "#007BFF"}}, "font": {"color": "white"}, "id": "Tohono O\u2019odham Nation", "label": "Tohono O\u2019odham Nation", "shape": "dot", "size": 30}, {"borderWidth": 4, "borderWidthSelected": 8, "color": {"background": "#FFA500", "border": "#FFA500", "highlight": {"border": "#FFA500"}}, "font": {"color": "white"}, "id": "Raymond Mattia", "label": "Raymond Mattia", "shape": "dot", "size": 30}, {"borderWidth": 4, "borderWidthSelected": 8, "color": {"background": "#007BFF", "border": "#007BFF", "highlight": {"border": "#007BFF"}}, "font": {"color": "white"}, "id": "US Customs and Border Patrol", "label": "US Customs and Border Patrol", "shape": "dot", "size": 30}, {"borderWidth": 4, "borderWidthSelected": 8, "color": {"background": "#FFA500", "border": "#FFA500", "highlight": {"border": "#FFA500"}}, "font": {"color": "white"}, "id": "Mike Williams Sr", "label": "Mike Williams Sr", "shape": "dot", "size": 30}, {"borderWidth": 4, "borderWidthSelected": 8, "color": {"background": "#007BFF", "border": "#007BFF", "highlight": {"border": "#007BFF"}}, "font": {"color": "white"}, "id": "Akiak Native Community", "label": "Akiak Native Community", "shape": "dot", "size": 30}, {"borderWidth": 4, "borderWidthSelected": 8, "color": {"background": "#8E44AD", "border": "#8E44AD", "highlight": {"border": "#8E44AD"}}, "font": {"color": "white"}, "id": "Kuskokwim River", "label": "Kuskokwim River", "shape": "dot", "size": 30}, {"borderWidth": 4, "borderWidthSelected": 8, "color": {"background": "#8E44AD", "border": "#8E44AD", "highlight": {"border": "#8E44AD"}}, "font": {"color": "white"}, "id": "Kivalina", "label": "Kivalina", "shape": "dot", "size": 30}, {"borderWidth": 4, "borderWidthSelected": 8, "color": {"background": "#8E44AD", "border": "#8E44AD", "highlight": {"border": "#8E44AD"}}, "font": {"color": "white"}, "id": "Louisiana", "label": "Louisiana", "shape": "dot", "size": 30}, {"borderWidth": 4, "borderWidthSelected": 8, "color": {"background": "#FFA500", "border": "#FFA500", "highlight": {"border": "#FFA500"}}, "font": {"color": "white"}, "id": "Joseph L James", "label": "Joseph L James", "shape": "dot", "size": 30}, {"borderWidth": 4, "borderWidthSelected": 8, "color": {"background": "#007BFF", "border": "#007BFF", "highlight": {"border": "#007BFF"}}, "font": {"color": "white"}, "id": "Yurok Tribe", "label": "Yurok Tribe", "shape": "dot", "size": 30}, {"borderWidth": 4, "borderWidthSelected": 8, "color": {"background": "#007BFF", "border": "#007BFF", "highlight": {"border": "#007BFF"}}, "font": {"color": "white"}, "id": "Cherokee Nation", "label": "Cherokee Nation", "shape": "dot", "size": 30}, {"borderWidth": 4, "borderWidthSelected": 8, "color": {"background": "#FFA500", "border": "#FFA500", "highlight": {"border": "#FFA500"}}, "font": {"color": "white"}, "id": "Chuck Hoskin Jr", "label": "Chuck Hoskin Jr", "shape": "dot", "size": 30}, {"borderWidth": 4, "borderWidthSelected": 8, "color": {"background": "#007BFF", "border": "#007BFF", "highlight": {"border": "#007BFF"}}, "font": {"color": "white"}, "id": "Morongo Band of Mission Indians", "label": "Morongo Band of Mission Indians", "shape": "dot", "size": 30}, {"borderWidth": 4, "borderWidthSelected": 8, "color": {"background": "#FFA500", "border": "#FFA500", "highlight": {"border": "#FFA500"}}, "font": {"color": "white"}, "id": "Charles Martin", "label": "Charles Martin", "shape": "dot", "size": 30}, {"borderWidth": 4, "borderWidthSelected": 8, "color": {"background": "#007BFF", "border": "#007BFF", "highlight": {"border": "#007BFF"}}, "font": {"color": "white"}, "id": "Oneida Nation", "label": "Oneida Nation", "shape": "dot", "size": 30}, {"borderWidth": 4, "borderWidthSelected": 8, "color": {"background": "#FFA500", "border": "#FFA500", "highlight": {"border": "#FFA500"}}, "font": {"color": "white"}, "id": "Tehassi Hill", "label": "Tehassi Hill", "shape": "dot", "size": 30}, {"borderWidth": 4, "borderWidthSelected": 8, "color": {"background": "#007BFF", "border": "#007BFF", "highlight": {"border": "#007BFF"}}, "font": {"color": "white"}, "id": "Quinault Indian Nation", "label": "Quinault Indian Nation", "shape": "dot", "size": 30}, {"borderWidth": 4, "borderWidthSelected": 8, "color": {"background": "#FFA500", "border": "#FFA500", "highlight": {"border": "#FFA500"}}, "font": {"color": "white"}, "id": "Guy Capoeman", "label": "Guy Capoeman", "shape": "dot", "size": 30}, {"borderWidth": 4, "borderWidthSelected": 8, "color": {"background": "#FFA500", "border": "#FFA500", "highlight": {"border": "#FFA500"}}, "font": {"color": "white"}, "id": "Mar\u00eda Isaura Cuaran", "label": "Mar\u00eda Isaura Cuaran", "shape": "dot", "size": 30}, {"borderWidth": 4, "borderWidthSelected": 8, "color": {"background": "#FFA500", "border": "#FFA500", "highlight": {"border": "#FFA500"}}, "font": {"color": "white"}, "id": "Marleni Piaguaye", "label": "Marleni Piaguaye", "shape": "dot", "size": 30}, {"borderWidth": 4, "borderWidthSelected": 8, "color": {"background": "#FFA500", "border": "#FFA500", "highlight": {"border": "#FFA500"}}, "font": {"color": "white"}, "id": "Willa Powless", "label": "Willa Powless", "shape": "dot", "size": 30}, {"borderWidth": 4, "borderWidthSelected": 8, "color": {"background": "#007BFF", "border": "#007BFF", "highlight": {"border": "#007BFF"}}, "font": {"color": "white"}, "id": "Klamath Tribes", "label": "Klamath Tribes", "shape": "dot", "size": 30}, {"borderWidth": 4, "borderWidthSelected": 8, "color": {"background": "#FFA500", "border": "#FFA500", "highlight": {"border": "#FFA500"}}, "font": {"color": "white"}, "id": "Stengsar", "label": "Stengsar", "shape": "dot", "size": 30}, {"borderWidth": 4, "borderWidthSelected": 8, "color": {"background": "#007BFF", "border": "#007BFF", "highlight": {"border": "#007BFF"}}, "font": {"color": "white"}, "id": "Schitsu\u2019umsh", "label": "Schitsu\u2019umsh", "shape": "dot", "size": 30}, {"borderWidth": 4, "borderWidthSelected": 8, "color": {"background": "#007BFF", "border": "#007BFF", "highlight": {"border": "#007BFF"}}, "font": {"color": "white"}, "id": "Coeur d\u2019Alene Tribe", "label": "Coeur d\u2019Alene Tribe", "shape": "dot", "size": 30}, {"borderWidth": 4, "borderWidthSelected": 8, "color": {"background": "#8E44AD", "border": "#8E44AD", "highlight": {"border": "#8E44AD"}}, "font": {"color": "white"}, "id": "Coeur d\u2019Alene Lake", "label": "Coeur d\u2019Alene Lake", "shape": "dot", "size": 30}, {"borderWidth": 4, "borderWidthSelected": 8, "color": {"background": "#8E44AD", "border": "#8E44AD", "highlight": {"border": "#8E44AD"}}, "font": {"color": "white"}, "id": "Idaho", "label": "Idaho", "shape": "dot", "size": 30}, {"borderWidth": 4, "borderWidthSelected": 8, "color": {"background": "#007BFF", "border": "#007BFF", "highlight": {"border": "#007BFF"}}, "font": {"color": "white"}, "id": "Te R\u016bnanga o Te Atiawa", "label": "Te R\u016bnanga o Te Atiawa", "shape": "dot", "size": 30}, {"borderWidth": 4, "borderWidthSelected": 8, "color": {"background": "#FFA500", "border": "#FFA500", "highlight": {"border": "#FFA500"}}, "font": {"color": "white"}, "id": "Kura Moeahu", "label": "Kura Moeahu", "shape": "dot", "size": 30}, {"borderWidth": 4, "borderWidthSelected": 8, "color": {"background": "#8E44AD", "border": "#8E44AD", "highlight": {"border": "#8E44AD"}}, "font": {"color": "white"}, "id": "Wellington", "label": "Wellington", "shape": "dot", "size": 30}]);
+                  edges = new vis.DataSet([{"arrows": "to", "color": "#D3D3D3", "font": {"align": "middle", "color": "white", "size": 14, "strokeColor": "rgba(0,0,0,0)", "vadjust": -10}, "from": "Goy Zhenru", "label": "works for", "to": "Goy Architects", "width": 5}, {"arrows": "to", "color": "#D3D3D3", "font": {"align": "middle", "color": "white", "size": 14, "strokeColor": "rgba(0,0,0,0)", "vadjust": -10}, "from": "Goy Architects", "label": "refurbished", "to": "Hotel Everest View", "width": 5}, {"arrows": "to", "color": "#D3D3D3", "font": {"align": "middle", "color": "white", "size": 14, "strokeColor": "rgba(0,0,0,0)", "vadjust": -10}, "from": "Sonia Miyahara", "label": "owns", "to": "Hotel Everest View", "width": 5}, {"arrows": "to", "color": "#D3D3D3", "font": {"align": "middle", "color": "white", "size": 14, "strokeColor": "rgba(0,0,0,0)", "vadjust": -10}, "from": "Takashi Miyahara", "label": "developed", "to": "Hotel Everest View", "width": 5}, {"arrows": "to", "color": "#D3D3D3", "font": {"align": "middle", "color": "white", "size": 14, "strokeColor": "rgba(0,0,0,0)", "vadjust": -10}, "from": "Yoshinobu Kumagaya", "label": "designed", "to": "Hotel Everest View", "width": 5}, {"arrows": "to", "color": "#D3D3D3", "font": {"align": "middle", "color": "white", "size": 14, "strokeColor": "rgba(0,0,0,0)", "vadjust": -10}, "from": "Hotel Everest View", "label": "located in", "to": "Syangboche", "width": 5}, {"arrows": "to", "color": "#D3D3D3", "font": {"align": "middle", "color": "white", "size": 14, "strokeColor": "rgba(0,0,0,0)", "vadjust": -10}, "from": "Hotel Everest View", "label": "located in", "to": "Nepal", "width": 5}, {"arrows": "to", "color": "#D3D3D3", "font": {"align": "middle", "color": "white", "size": 14, "strokeColor": "rgba(0,0,0,0)", "vadjust": -10}, "from": "Hotel Everest View", "label": "located in", "to": "Kumbu", "width": 5}, {"arrows": "to", "color": "#D3D3D3", "font": {"align": "middle", "color": "white", "size": 14, "strokeColor": "rgba(0,0,0,0)", "vadjust": -10}, "from": "Hotel Everest View", "label": "located in", "to": "Sagarmatha National Park", "width": 5}, {"arrows": "to", "color": "#D3D3D3", "font": {"align": "middle", "color": "white", "size": 14, "strokeColor": "rgba(0,0,0,0)", "vadjust": -10}, "from": "Sonia Miyahara", "label": "worked in", "to": "Singapore", "width": 5}, {"arrows": "to", "color": "#D3D3D3", "font": {"align": "middle", "color": "white", "size": 14, "strokeColor": "rgba(0,0,0,0)", "vadjust": -10}, "from": "Ingen Kyoto", "label": "owned by", "to": "Hvala", "width": 5}, {"arrows": "to", "color": "#D3D3D3", "font": {"align": "middle", "color": "white", "size": 14, "strokeColor": "rgba(0,0,0,0)", "vadjust": -10}, "from": "Ingen Kyoto", "label": "located in", "to": "ION Orchard", "width": 5}, {"arrows": "to", "color": "#D3D3D3", "font": {"align": "middle", "color": "white", "size": 14, "strokeColor": "rgba(0,0,0,0)", "vadjust": -10}, "from": "Madhusree Mukerjee", "label": "works for", "to": "Scientific American", "width": 5}, {"arrows": "to", "color": "#D3D3D3", "font": {"align": "middle", "color": "white", "size": 14, "strokeColor": "rgba(0,0,0,0)", "vadjust": -10}, "from": "Madhusree Mukerjee", "label": "researched", "to": "Andaman Islands", "width": 5}, {"arrows": "to", "color": "#D3D3D3", "font": {"align": "middle", "color": "white", "size": 14, "strokeColor": "rgba(0,0,0,0)", "vadjust": -10}, "from": "Sentinelese", "label": "inhabit", "to": "Andaman Islands", "width": 5}, {"arrows": "to", "color": "#D3D3D3", "font": {"align": "middle", "color": "white", "size": 14, "strokeColor": "rgba(0,0,0,0)", "vadjust": -10}, "from": "La\u00e9rcio Souza Silva Guajajara", "label": "same person", "to": "Tainaky", "width": 5}, {"arrows": "to", "color": "#D3D3D3", "font": {"align": "middle", "color": "white", "size": 14, "strokeColor": "rgba(0,0,0,0)", "vadjust": -10}, "from": "Ajareaty Waiapi", "label": "member of", "to": "Waiapi", "width": 5}, {"arrows": "to", "color": "#D3D3D3", "font": {"align": "middle", "color": "white", "size": 14, "strokeColor": "rgba(0,0,0,0)", "vadjust": -10}, "from": "Waiapi", "label": "located in", "to": "Amapa", "width": 5}, {"arrows": "to", "color": "#D3D3D3", "font": {"align": "middle", "color": "white", "size": 14, "strokeColor": "rgba(0,0,0,0)", "vadjust": -10}, "from": "Waiapi", "label": "located in", "to": "Brazil", "width": 5}, {"arrows": "to", "color": "#D3D3D3", "font": {"align": "middle", "color": "white", "size": 14, "strokeColor": "rgba(0,0,0,0)", "vadjust": -10}, "from": "Martin", "label": "lives in", "to": "Contamana", "width": 5}, {"arrows": "to", "color": "#D3D3D3", "font": {"align": "middle", "color": "white", "size": 14, "strokeColor": "rgba(0,0,0,0)", "vadjust": -10}, "from": "Martin", "label": "lives in", "to": "Peru", "width": 5}, {"arrows": "to", "color": "#D3D3D3", "font": {"align": "middle", "color": "white", "size": 14, "strokeColor": "rgba(0,0,0,0)", "vadjust": -10}, "from": "Pablo Maniguaje", "label": "member of", "to": "Siona", "width": 5}, {"arrows": "to", "color": "#D3D3D3", "font": {"align": "middle", "color": "white", "size": 14, "strokeColor": "rgba(0,0,0,0)", "vadjust": -10}, "from": "Siona", "label": "near", "to": "Putumayo River", "width": 5}, {"arrows": "to", "color": "#E74C3C", "font": {"align": "middle", "color": "white", "size": 14, "strokeColor": "rgba(0,0,0,0)", "vadjust": -10}, "from": "Amerisur Resources", "label": "wants to explore", "to": "Siona", "width": 5}, {"arrows": "to", "color": "#D3D3D3", "font": {"align": "middle", "color": "white", "size": 14, "strokeColor": "rgba(0,0,0,0)", "vadjust": -10}, "from": "Kevin Jensvold", "label": "chairman of", "to": "Upper Sioux Community", "width": 5}, {"arrows": "to", "color": "#D3D3D3", "font": {"align": "middle", "color": "white", "size": 14, "strokeColor": "rgba(0,0,0,0)", "vadjust": -10}, "from": "Upper Sioux Community", "label": "located in", "to": "Minnesota", "width": 5}, {"arrows": "to", "color": "#D3D3D3", "font": {"align": "middle", "color": "white", "size": 14, "strokeColor": "rgba(0,0,0,0)", "vadjust": -10}, "from": "Dakota", "label": "fought in", "to": "Minnesota", "width": 5}, {"arrows": "to", "color": "#D3D3D3", "font": {"align": "middle", "color": "white", "size": 14, "strokeColor": "rgba(0,0,0,0)", "vadjust": -10}, "from": "Esselen tribe", "label": "located in", "to": "Monterey county", "width": 5}, {"arrows": "to", "color": "#D3D3D3", "font": {"align": "middle", "color": "white", "size": 14, "strokeColor": "rgba(0,0,0,0)", "vadjust": -10}, "from": "Tom Little Bear Nason", "label": "chairman of", "to": "Esselen tribe", "width": 5}, {"arrows": "to", "color": "#D3D3D3", "font": {"align": "middle", "color": "white", "size": 14, "strokeColor": "rgba(0,0,0,0)", "vadjust": -10}, "from": "Batek", "label": "located in", "to": "Malaysia", "width": 5}, {"arrows": "to", "color": "#D3D3D3", "font": {"align": "middle", "color": "white", "size": 14, "strokeColor": "rgba(0,0,0,0)", "vadjust": -10}, "from": "Batek", "label": "located in", "to": "Kelantan rainforest", "width": 5}, {"arrows": "to", "color": "#D3D3D3", "font": {"align": "middle", "color": "white", "size": 14, "strokeColor": "rgba(0,0,0,0)", "vadjust": -10}, "from": "Adidas Om", "label": "lives in", "to": "Kuala Koh", "width": 5}, {"arrows": "to", "color": "#D3D3D3", "font": {"align": "middle", "color": "white", "size": 14, "strokeColor": "rgba(0,0,0,0)", "vadjust": -10}, "from": "Adidas Om", "label": "visited", "to": "Kuala Krai hospital", "width": 5}, {"arrows": "to", "color": "#D3D3D3", "font": {"align": "middle", "color": "white", "size": 14, "strokeColor": "rgba(0,0,0,0)", "vadjust": -10}, "from": "Scott Schuyler", "label": "member of", "to": "Upper Skagit Indian tribe", "width": 5}, {"arrows": "to", "color": "#D3D3D3", "font": {"align": "middle", "color": "white", "size": 14, "strokeColor": "rgba(0,0,0,0)", "vadjust": -10}, "from": "Upper Skagit Indian tribe", "label": "lives near", "to": "Skagit River", "width": 5}, {"arrows": "to", "color": "#D3D3D3", "font": {"align": "middle", "color": "white", "size": 14, "strokeColor": "rgba(0,0,0,0)", "vadjust": -10}, "from": "Upper Skagit Indian tribe", "label": "located in", "to": "Washington", "width": 5}, {"arrows": "to", "color": "#D3D3D3", "font": {"align": "middle", "color": "white", "size": 14, "strokeColor": "rgba(0,0,0,0)", "vadjust": -10}, "from": "O\u2019Rourke", "label": "member of", "to": "Yurok", "width": 5}, {"arrows": "to", "color": "#D3D3D3", "font": {"align": "middle", "color": "white", "size": 14, "strokeColor": "rgba(0,0,0,0)", "vadjust": -10}, "from": "Yurok", "label": "located in", "to": "Klamath mountains", "width": 5}, {"arrows": "to", "color": "#D3D3D3", "font": {"align": "middle", "color": "white", "size": 14, "strokeColor": "rgba(0,0,0,0)", "vadjust": -10}, "from": "Yurok Cultural Fire Management Council", "label": "works for", "to": "Yurok", "width": 5}, {"arrows": "to", "color": "#D3D3D3", "font": {"align": "middle", "color": "white", "size": 14, "strokeColor": "rgba(0,0,0,0)", "vadjust": -10}, "from": "Raymond Mattia", "label": "member of", "to": "Tohono O\u2019odham Nation", "width": 5}, {"arrows": "to", "color": "#E74C3C", "font": {"align": "middle", "color": "white", "size": 14, "strokeColor": "rgba(0,0,0,0)", "vadjust": -10}, "from": "US Customs and Border Patrol", "label": "killed", "to": "Raymond Mattia", "width": 5}, {"arrows": "to", "color": "#D3D3D3", "font": {"align": "middle", "color": "white", "size": 14, "strokeColor": "rgba(0,0,0,0)", "vadjust": -10}, "from": "Mike Williams Sr", "label": "chief of", "to": "Akiak Native Community", "width": 5}, {"arrows": "to", "color": "#D3D3D3", "font": {"align": "middle", "color": "white", "size": 14, "strokeColor": "rgba(0,0,0,0)", "vadjust": -10}, "from": "Akiak Native Community", "label": "located near", "to": "Kuskokwim River", "width": 5}, {"arrows": "to", "color": "#D3D3D3", "font": {"align": "middle", "color": "white", "size": 14, "strokeColor": "rgba(0,0,0,0)", "vadjust": -10}, "from": "Kivalina", "label": "filed complaint with", "to": "Louisiana", "width": 5}, {"arrows": "to", "color": "#D3D3D3", "font": {"align": "middle", "color": "white", "size": 14, "strokeColor": "rgba(0,0,0,0)", "vadjust": -10}, "from": "Joseph L James", "label": "chairman of", "to": "Yurok Tribe", "width": 5}, {"arrows": "to", "color": "#D3D3D3", "font": {"align": "middle", "color": "white", "size": 14, "strokeColor": "rgba(0,0,0,0)", "vadjust": -10}, "from": "Chuck Hoskin Jr", "label": "principal chief of", "to": "Cherokee Nation", "width": 5}, {"arrows": "to", "color": "#D3D3D3", "font": {"align": "middle", "color": "white", "size": 14, "strokeColor": "rgba(0,0,0,0)", "vadjust": -10}, "from": "Charles Martin", "label": "chairman of", "to": "Morongo Band of Mission Indians", "width": 5}, {"arrows": "to", "color": "#D3D3D3", "font": {"align": "middle", "color": "white", "size": 14, "strokeColor": "rgba(0,0,0,0)", "vadjust": -10}, "from": "Tehassi Hill", "label": "chairman of", "to": "Oneida Nation", "width": 5}, {"arrows": "to", "color": "#D3D3D3", "font": {"align": "middle", "color": "white", "size": 14, "strokeColor": "rgba(0,0,0,0)", "vadjust": -10}, "from": "Guy Capoeman", "label": "president of", "to": "Quinault Indian Nation", "width": 5}, {"arrows": "to", "color": "#D3D3D3", "font": {"align": "middle", "color": "white", "size": 14, "strokeColor": "rgba(0,0,0,0)", "vadjust": -10}, "from": "Mar\u00eda Isaura Cuaran", "label": "member of", "to": "Siona", "width": 5}, {"arrows": "to", "color": "#D3D3D3", "font": {"align": "middle", "color": "white", "size": 14, "strokeColor": "rgba(0,0,0,0)", "vadjust": -10}, "from": "Marleni Piaguaye", "label": "member of", "to": "Siona", "width": 5}, {"arrows": "to", "color": "#D3D3D3", "font": {"align": "middle", "color": "white", "size": 14, "strokeColor": "rgba(0,0,0,0)", "vadjust": -10}, "from": "Willa Powless", "label": "council member of", "to": "Klamath Tribes", "width": 5}, {"arrows": "to", "color": "#D3D3D3", "font": {"align": "middle", "color": "white", "size": 14, "strokeColor": "rgba(0,0,0,0)", "vadjust": -10}, "from": "Stengsar", "label": "member of", "to": "Schitsu\u2019umsh", "width": 5}, {"arrows": "to", "color": "#D3D3D3", "font": {"align": "middle", "color": "white", "size": 14, "strokeColor": "rgba(0,0,0,0)", "vadjust": -10}, "from": "Stengsar", "label": "member of", "to": "Coeur d\u2019Alene Tribe", "width": 5}, {"arrows": "to", "color": "#D3D3D3", "font": {"align": "middle", "color": "white", "size": 14, "strokeColor": "rgba(0,0,0,0)", "vadjust": -10}, "from": "Coeur d\u2019Alene Tribe", "label": "located near", "to": "Coeur d\u2019Alene Lake", "width": 5}, {"arrows": "to", "color": "#D3D3D3", "font": {"align": "middle", "color": "white", "size": 14, "strokeColor": "rgba(0,0,0,0)", "vadjust": -10}, "from": "Coeur d\u2019Alene Tribe", "label": "located in", "to": "Idaho", "width": 5}, {"arrows": "to", "color": "#D3D3D3", "font": {"align": "middle", "color": "white", "size": 14, "strokeColor": "rgba(0,0,0,0)", "vadjust": -10}, "from": "Kura Moeahu", "label": "chairman of", "to": "Te R\u016bnanga o Te Atiawa", "width": 5}, {"arrows": "to", "color": "#D3D3D3", "font": {"align": "middle", "color": "white", "size": 14, "strokeColor": "rgba(0,0,0,0)", "vadjust": -10}, "from": "Te R\u016bnanga o Te Atiawa", "label": "located in", "to": "Wellington", "width": 5}]);
+
+                  nodeColors = {};
+                  allNodes = nodes.get({ returnType: "Object" });
+                  for (nodeId in allNodes) {
+                    nodeColors[nodeId] = allNodes[nodeId].color;
+                  }
+                  allEdges = edges.get({ returnType: "Object" });
+                  // adding nodes and edges to the graph
+                  data = {nodes: nodes, edges: edges};
+
+                  var options = {"physics": {"barnesHut": {"gravitationalConstant": -5050, "centralGravity": 0.75, "springLength": 180, "damping": 0.5, "avoidOverlap": 1}}};
+
+                  
+
+
+                  
+
+                  network = new vis.Network(container, data, options);
+
+                  
+
+                  
+
+                  
+
+
+                  
+
+                  return network;
+
+              }
+              drawGraph();
+        </script>
+    </body>
+</html>
+    <style>
+        .legend {
+            position: absolute;
+            top: 20px;
+            right: 20px;
+            background: white;
+            padding: 10px;
+            border-radius: 5px;
+            font-size: 14px;
+            font-family: Arial, sans-serif;
+            z-index: 1000;
+        }
+        .legend-item {
+            display: flex;
+            align-items: center;
+            margin-bottom: 5px;
+        }
+        .legend-color {
+            width: 15px;
+            height: 15px;
+            margin-right: 5px;
+            border-radius: 3px;
+        }
+    </style>
+    <div class="legend">
+        <strong>Legend</strong>
+        <div class="legend-item"><div class="legend-color" style="background:#FFA500"></div>Person (PER)</div>
+        <div class="legend-item"><div class="legend-color" style="background:#007BFF"></div>Organisation (ORG)</div>
+        <div class="legend-item"><div class="legend-color" style="background:#8E44AD"></div>Location (LOC)</div>
+        <div class="legend-item"><div class="legend-color" style="background:#1ABC9C"></div>Event (EVT)</div>
+        <div class="legend-item"><div class="legend-color" style="background:#BDC3C7"></div>Miscellaneous (MISC)</div>
+        <hr>
+        <div class="legend-item"><div class="legend-color" style="background:#27AE60"></div>Positive (PV)</div>
+        <div class="legend-item"><div class="legend-color" style="background:#E74C3C"></div>Negative (NG)</div>
+        <div class="legend-item"><div class="legend-color" style="background:#D3D3D3"></div>Neutral (NE)</div>
+    </div>
+    

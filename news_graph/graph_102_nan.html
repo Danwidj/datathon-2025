@@ -1,0 +1,358 @@
+<html>
+    <head>
+        <meta charset="utf-8">
+        
+            <script>function neighbourhoodHighlight(params) {
+  // console.log("in nieghbourhoodhighlight");
+  allNodes = nodes.get({ returnType: "Object" });
+  // originalNodes = JSON.parse(JSON.stringify(allNodes));
+  // if something is selected:
+  if (params.nodes.length > 0) {
+    highlightActive = true;
+    var i, j;
+    var selectedNode = params.nodes[0];
+    var degrees = 2;
+
+    // mark all nodes as hard to read.
+    for (let nodeId in allNodes) {
+      // nodeColors[nodeId] = allNodes[nodeId].color;
+      allNodes[nodeId].color = "rgba(200,200,200,0.5)";
+      if (allNodes[nodeId].hiddenLabel === undefined) {
+        allNodes[nodeId].hiddenLabel = allNodes[nodeId].label;
+        allNodes[nodeId].label = undefined;
+      }
+    }
+    var connectedNodes = network.getConnectedNodes(selectedNode);
+    var allConnectedNodes = [];
+
+    // get the second degree nodes
+    for (i = 1; i < degrees; i++) {
+      for (j = 0; j < connectedNodes.length; j++) {
+        allConnectedNodes = allConnectedNodes.concat(
+          network.getConnectedNodes(connectedNodes[j])
+        );
+      }
+    }
+
+    // all second degree nodes get a different color and their label back
+    for (i = 0; i < allConnectedNodes.length; i++) {
+      // allNodes[allConnectedNodes[i]].color = "pink";
+      allNodes[allConnectedNodes[i]].color = "rgba(150,150,150,0.75)";
+      if (allNodes[allConnectedNodes[i]].hiddenLabel !== undefined) {
+        allNodes[allConnectedNodes[i]].label =
+          allNodes[allConnectedNodes[i]].hiddenLabel;
+        allNodes[allConnectedNodes[i]].hiddenLabel = undefined;
+      }
+    }
+
+    // all first degree nodes get their own color and their label back
+    for (i = 0; i < connectedNodes.length; i++) {
+      // allNodes[connectedNodes[i]].color = undefined;
+      allNodes[connectedNodes[i]].color = nodeColors[connectedNodes[i]];
+      if (allNodes[connectedNodes[i]].hiddenLabel !== undefined) {
+        allNodes[connectedNodes[i]].label =
+          allNodes[connectedNodes[i]].hiddenLabel;
+        allNodes[connectedNodes[i]].hiddenLabel = undefined;
+      }
+    }
+
+    // the main node gets its own color and its label back.
+    // allNodes[selectedNode].color = undefined;
+    allNodes[selectedNode].color = nodeColors[selectedNode];
+    if (allNodes[selectedNode].hiddenLabel !== undefined) {
+      allNodes[selectedNode].label = allNodes[selectedNode].hiddenLabel;
+      allNodes[selectedNode].hiddenLabel = undefined;
+    }
+  } else if (highlightActive === true) {
+    // console.log("highlightActive was true");
+    // reset all nodes
+    for (let nodeId in allNodes) {
+      // allNodes[nodeId].color = "purple";
+      allNodes[nodeId].color = nodeColors[nodeId];
+      // delete allNodes[nodeId].color;
+      if (allNodes[nodeId].hiddenLabel !== undefined) {
+        allNodes[nodeId].label = allNodes[nodeId].hiddenLabel;
+        allNodes[nodeId].hiddenLabel = undefined;
+      }
+    }
+    highlightActive = false;
+  }
+
+  // transform the object into an array
+  var updateArray = [];
+  if (params.nodes.length > 0) {
+    for (let nodeId in allNodes) {
+      if (allNodes.hasOwnProperty(nodeId)) {
+        // console.log(allNodes[nodeId]);
+        updateArray.push(allNodes[nodeId]);
+      }
+    }
+    nodes.update(updateArray);
+  } else {
+    // console.log("Nothing was selected");
+    for (let nodeId in allNodes) {
+      if (allNodes.hasOwnProperty(nodeId)) {
+        // console.log(allNodes[nodeId]);
+        // allNodes[nodeId].color = {};
+        updateArray.push(allNodes[nodeId]);
+      }
+    }
+    nodes.update(updateArray);
+  }
+}
+
+function filterHighlight(params) {
+  allNodes = nodes.get({ returnType: "Object" });
+  // if something is selected:
+  if (params.nodes.length > 0) {
+    filterActive = true;
+    let selectedNodes = params.nodes;
+
+    // hiding all nodes and saving the label
+    for (let nodeId in allNodes) {
+      allNodes[nodeId].hidden = true;
+      if (allNodes[nodeId].savedLabel === undefined) {
+        allNodes[nodeId].savedLabel = allNodes[nodeId].label;
+        allNodes[nodeId].label = undefined;
+      }
+    }
+
+    for (let i=0; i < selectedNodes.length; i++) {
+      allNodes[selectedNodes[i]].hidden = false;
+      if (allNodes[selectedNodes[i]].savedLabel !== undefined) {
+        allNodes[selectedNodes[i]].label = allNodes[selectedNodes[i]].savedLabel;
+        allNodes[selectedNodes[i]].savedLabel = undefined;
+      }
+    }
+
+  } else if (filterActive === true) {
+    // reset all nodes
+    for (let nodeId in allNodes) {
+      allNodes[nodeId].hidden = false;
+      if (allNodes[nodeId].savedLabel !== undefined) {
+        allNodes[nodeId].label = allNodes[nodeId].savedLabel;
+        allNodes[nodeId].savedLabel = undefined;
+      }
+    }
+    filterActive = false;
+  }
+
+  // transform the object into an array
+  var updateArray = [];
+  if (params.nodes.length > 0) {
+    for (let nodeId in allNodes) {
+      if (allNodes.hasOwnProperty(nodeId)) {
+        updateArray.push(allNodes[nodeId]);
+      }
+    }
+    nodes.update(updateArray);
+  } else {
+    for (let nodeId in allNodes) {
+      if (allNodes.hasOwnProperty(nodeId)) {
+        updateArray.push(allNodes[nodeId]);
+      }
+    }
+    nodes.update(updateArray);
+  }
+}
+
+function selectNode(nodes) {
+  network.selectNodes(nodes);
+  neighbourhoodHighlight({ nodes: nodes });
+  return nodes;
+}
+
+function selectNodes(nodes) {
+  network.selectNodes(nodes);
+  filterHighlight({nodes: nodes});
+  return nodes;
+}
+
+function highlightFilter(filter) {
+  let selectedNodes = []
+  let selectedProp = filter['property']
+  if (filter['item'] === 'node') {
+    let allNodes = nodes.get({ returnType: "Object" });
+    for (let nodeId in allNodes) {
+      if (allNodes[nodeId][selectedProp] && filter['value'].includes((allNodes[nodeId][selectedProp]).toString())) {
+        selectedNodes.push(nodeId)
+      }
+    }
+  }
+  else if (filter['item'] === 'edge'){
+    let allEdges = edges.get({returnType: 'object'});
+    // check if the selected property exists for selected edge and select the nodes connected to the edge
+    for (let edge in allEdges) {
+      if (allEdges[edge][selectedProp] && filter['value'].includes((allEdges[edge][selectedProp]).toString())) {
+        selectedNodes.push(allEdges[edge]['from'])
+        selectedNodes.push(allEdges[edge]['to'])
+      }
+    }
+  }
+  selectNodes(selectedNodes)
+}</script>
+            <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/vis-network/9.1.2/dist/dist/vis-network.min.css" integrity="sha512-WgxfT5LWjfszlPHXRmBWHkV2eceiWTOBvrKCNbdgDYTHrT2AeLCGbF4sZlZw3UMN3WtL0tGUoIAKsu8mllg/XA==" crossorigin="anonymous" referrerpolicy="no-referrer" />
+            <script src="https://cdnjs.cloudflare.com/ajax/libs/vis-network/9.1.2/dist/vis-network.min.js" integrity="sha512-LnvoEWDFrqGHlHmDD2101OrLcbsfkrzoSpvtSQtxK3RMnRV0eOkhhBN2dXHKRrUU8p2DGRTk35n4O8nWSVe1mQ==" crossorigin="anonymous" referrerpolicy="no-referrer"></script>
+            
+            
+            
+            
+            
+            
+
+        
+<center>
+<h1></h1>
+</center>
+
+<!-- <link rel="stylesheet" href="../node_modules/vis/dist/vis.min.css" type="text/css" />
+<script type="text/javascript" src="../node_modules/vis/dist/vis.js"> </script>-->
+        <link
+          href="https://cdn.jsdelivr.net/npm/bootstrap@5.0.0-beta3/dist/css/bootstrap.min.css"
+          rel="stylesheet"
+          integrity="sha384-eOJMYsd53ii+scO/bJGFsiCZc+5NDVN2yr8+0RDqr0Ql0h+rP48ckxlpbzKgwra6"
+          crossorigin="anonymous"
+        />
+        <script
+          src="https://cdn.jsdelivr.net/npm/bootstrap@5.0.0-beta3/dist/js/bootstrap.bundle.min.js"
+          integrity="sha384-JEW9xMcG8R+pH31jmWH6WWP0WintQrMb4s7ZOdauHnUtxwoG2vI5DkLtS3qm9Ekf"
+          crossorigin="anonymous"
+        ></script>
+
+
+        <center>
+          <h1></h1>
+        </center>
+        <style type="text/css">
+
+             #mynetwork {
+                 width: 100%;
+                 height: 100vh;
+                 background-color: #222222;
+                 border: 1px solid lightgray;
+                 position: relative;
+                 float: left;
+             }
+
+             
+
+             
+
+             
+        </style>
+    </head>
+
+
+    <body>
+        <div class="card" style="width: 100%">
+            
+            
+            <div id="mynetwork" class="card-body"></div>
+        </div>
+
+        
+        
+
+        <script type="text/javascript">
+
+              // initialize global variables.
+              var edges;
+              var nodes;
+              var allNodes;
+              var allEdges;
+              var nodeColors;
+              var originalNodes;
+              var network;
+              var container;
+              var options, data;
+              var filter = {
+                  item : '',
+                  property : '',
+                  value : []
+              };
+
+              
+
+              
+
+              // This method is responsible for drawing the graph, returns the drawn network
+              function drawGraph() {
+                  var container = document.getElementById('mynetwork');
+
+                  
+
+                  // parsing and collecting nodes and edges from the python
+                  nodes = new vis.DataSet([{"borderWidth": 4, "borderWidthSelected": 8, "color": {"background": "#FFA500", "border": "#FFA500", "highlight": {"border": "#FFA500"}}, "font": {"color": "white"}, "id": "Ms Ramayana", "label": "Ms Ramayana", "shape": "dot", "size": 30}, {"borderWidth": 4, "borderWidthSelected": 8, "color": {"background": "#007BFF", "border": "#007BFF", "highlight": {"border": "#007BFF"}}, "font": {"color": "white"}, "id": "University of Jambi", "label": "University of Jambi", "shape": "dot", "size": 30}, {"borderWidth": 4, "borderWidthSelected": 8, "color": {"background": "#007BFF", "border": "#007BFF", "highlight": {"border": "#007BFF"}}, "font": {"color": "white"}, "id": "Indonesian police", "label": "Indonesian police", "shape": "dot", "size": 30}, {"borderWidth": 4, "borderWidthSelected": 8, "color": {"background": "#007BFF", "border": "#007BFF", "highlight": {"border": "#007BFF"}}, "font": {"color": "white"}, "id": "Indonesian Embassy", "label": "Indonesian Embassy", "shape": "dot", "size": 30}, {"borderWidth": 4, "borderWidthSelected": 8, "color": {"background": "#007BFF", "border": "#007BFF", "highlight": {"border": "#007BFF"}}, "font": {"color": "white"}, "id": "ferienjob", "label": "ferienjob", "shape": "dot", "size": 30}, {"borderWidth": 4, "borderWidthSelected": 8, "color": {"background": "#FFA500", "border": "#FFA500", "highlight": {"border": "#FFA500"}}, "font": {"color": "white"}, "id": "Mdm Wong", "label": "Mdm Wong", "shape": "dot", "size": 30}, {"borderWidth": 4, "borderWidthSelected": 8, "color": {"background": "#007BFF", "border": "#007BFF", "highlight": {"border": "#007BFF"}}, "font": {"color": "white"}, "id": "National University Hospital", "label": "National University Hospital", "shape": "dot", "size": 30}, {"borderWidth": 4, "borderWidthSelected": 8, "color": {"background": "#007BFF", "border": "#007BFF", "highlight": {"border": "#007BFF"}}, "font": {"color": "white"}, "id": "Mobile Hearing Clinic", "label": "Mobile Hearing Clinic", "shape": "dot", "size": 30}, {"borderWidth": 4, "borderWidthSelected": 8, "color": {"background": "#007BFF", "border": "#007BFF", "highlight": {"border": "#007BFF"}}, "font": {"color": "white"}, "id": "Mobile Audiology Clinic", "label": "Mobile Audiology Clinic", "shape": "dot", "size": 30}, {"borderWidth": 4, "borderWidthSelected": 8, "color": {"background": "#007BFF", "border": "#007BFF", "highlight": {"border": "#007BFF"}}, "font": {"color": "white"}, "id": "Bukit Batok Polyclinic", "label": "Bukit Batok Polyclinic", "shape": "dot", "size": 30}, {"borderWidth": 4, "borderWidthSelected": 8, "color": {"background": "#007BFF", "border": "#007BFF", "highlight": {"border": "#007BFF"}}, "font": {"color": "white"}, "id": "FUNAI", "label": "FUNAI", "shape": "dot", "size": 30}, {"borderWidth": 4, "borderWidthSelected": 8, "color": {"background": "#FFA500", "border": "#FFA500", "highlight": {"border": "#FFA500"}}, "font": {"color": "white"}, "id": "Beto Marubo", "label": "Beto Marubo", "shape": "dot", "size": 30}, {"borderWidth": 4, "borderWidthSelected": 8, "color": {"background": "#007BFF", "border": "#007BFF", "highlight": {"border": "#007BFF"}}, "font": {"color": "white"}, "id": "Marubo", "label": "Marubo", "shape": "dot", "size": 30}, {"borderWidth": 4, "borderWidthSelected": 8, "color": {"background": "#8E44AD", "border": "#8E44AD", "highlight": {"border": "#8E44AD"}}, "font": {"color": "white"}, "id": "Vale do Javari", "label": "Vale do Javari", "shape": "dot", "size": 30}, {"borderWidth": 4, "borderWidthSelected": 8, "color": {"background": "#007BFF", "border": "#007BFF", "highlight": {"border": "#007BFF"}}, "font": {"color": "white"}, "id": "Flecheiros", "label": "Flecheiros", "shape": "dot", "size": 30}, {"borderWidth": 4, "borderWidthSelected": 8, "color": {"background": "#FFA500", "border": "#FFA500", "highlight": {"border": "#FFA500"}}, "font": {"color": "white"}, "id": "Xuxu Korubo", "label": "Xuxu Korubo", "shape": "dot", "size": 30}, {"borderWidth": 4, "borderWidthSelected": 8, "color": {"background": "#007BFF", "border": "#007BFF", "highlight": {"border": "#007BFF"}}, "font": {"color": "white"}, "id": "Korubo", "label": "Korubo", "shape": "dot", "size": 30}, {"borderWidth": 4, "borderWidthSelected": 8, "color": {"background": "#FFA500", "border": "#FFA500", "highlight": {"border": "#FFA500"}}, "font": {"color": "white"}, "id": "Patricia Tambunan", "label": "Patricia Tambunan", "shape": "dot", "size": 30}, {"borderWidth": 4, "borderWidthSelected": 8, "color": {"background": "#FFA500", "border": "#FFA500", "highlight": {"border": "#FFA500"}}, "font": {"color": "white"}, "id": "Mr Loh", "label": "Mr Loh", "shape": "dot", "size": 30}, {"borderWidth": 4, "borderWidthSelected": 8, "color": {"background": "#8E44AD", "border": "#8E44AD", "highlight": {"border": "#8E44AD"}}, "font": {"color": "white"}, "id": "Singapore", "label": "Singapore", "shape": "dot", "size": 30}, {"borderWidth": 4, "borderWidthSelected": 8, "color": {"background": "#8E44AD", "border": "#8E44AD", "highlight": {"border": "#8E44AD"}}, "font": {"color": "white"}, "id": "Malaysia", "label": "Malaysia", "shape": "dot", "size": 30}, {"borderWidth": 4, "borderWidthSelected": 8, "color": {"background": "#8E44AD", "border": "#8E44AD", "highlight": {"border": "#8E44AD"}}, "font": {"color": "white"}, "id": "Indonesia", "label": "Indonesia", "shape": "dot", "size": 30}, {"borderWidth": 4, "borderWidthSelected": 8, "color": {"background": "#007BFF", "border": "#007BFF", "highlight": {"border": "#007BFF"}}, "font": {"color": "white"}, "id": "World Health Organization", "label": "World Health Organization", "shape": "dot", "size": 30}, {"borderWidth": 4, "borderWidthSelected": 8, "color": {"background": "#007BFF", "border": "#007BFF", "highlight": {"border": "#007BFF"}}, "font": {"color": "white"}, "id": "Duke-NUS Medical School", "label": "Duke-NUS Medical School", "shape": "dot", "size": 30}, {"borderWidth": 4, "borderWidthSelected": 8, "color": {"background": "#007BFF", "border": "#007BFF", "highlight": {"border": "#007BFF"}}, "font": {"color": "white"}, "id": "Yong Loo Lin School of Medicine", "label": "Yong Loo Lin School of Medicine", "shape": "dot", "size": 30}, {"borderWidth": 4, "borderWidthSelected": 8, "color": {"background": "#007BFF", "border": "#007BFF", "highlight": {"border": "#007BFF"}}, "font": {"color": "white"}, "id": "Seoul National University", "label": "Seoul National University", "shape": "dot", "size": 30}, {"borderWidth": 4, "borderWidthSelected": 8, "color": {"background": "#FFA500", "border": "#FFA500", "highlight": {"border": "#FFA500"}}, "font": {"color": "white"}, "id": "Asst Prof Khoo Chin Meng", "label": "Asst Prof Khoo Chin Meng", "shape": "dot", "size": 30}, {"borderWidth": 4, "borderWidthSelected": 8, "color": {"background": "#007BFF", "border": "#007BFF", "highlight": {"border": "#007BFF"}}, "font": {"color": "white"}, "id": "National University Heart Centre", "label": "National University Heart Centre", "shape": "dot", "size": 30}, {"borderWidth": 4, "borderWidthSelected": 8, "color": {"background": "#007BFF", "border": "#007BFF", "highlight": {"border": "#007BFF"}}, "font": {"color": "white"}, "id": "National University Health System", "label": "National University Health System", "shape": "dot", "size": 30}, {"borderWidth": 4, "borderWidthSelected": 8, "color": {"background": "#FFA500", "border": "#FFA500", "highlight": {"border": "#FFA500"}}, "font": {"color": "white"}, "id": "Prof Roger Foo", "label": "Prof Roger Foo", "shape": "dot", "size": 30}, {"borderWidth": 4, "borderWidthSelected": 8, "color": {"background": "#007BFF", "border": "#007BFF", "highlight": {"border": "#007BFF"}}, "font": {"color": "white"}, "id": "Cardiovascular- Metabolic Disease Translational Research Programme", "label": "Cardiovascular- Metabolic Disease Translational Research Programme", "shape": "dot", "size": 30}, {"borderWidth": 4, "borderWidthSelected": 8, "color": {"background": "#007BFF", "border": "#007BFF", "highlight": {"border": "#007BFF"}}, "font": {"color": "white"}, "id": "Integrated Women\u2019s Health Programme", "label": "Integrated Women\u2019s Health Programme", "shape": "dot", "size": 30}, {"borderWidth": 4, "borderWidthSelected": 8, "color": {"background": "#FFA500", "border": "#FFA500", "highlight": {"border": "#FFA500"}}, "font": {"color": "white"}, "id": "Professor Yong Eu Leong", "label": "Professor Yong Eu Leong", "shape": "dot", "size": 30}, {"borderWidth": 4, "borderWidthSelected": 8, "color": {"background": "#007BFF", "border": "#007BFF", "highlight": {"border": "#007BFF"}}, "font": {"color": "white"}, "id": "Singapore Space and Technology Ltd", "label": "Singapore Space and Technology Ltd", "shape": "dot", "size": 30}, {"borderWidth": 4, "borderWidthSelected": 8, "color": {"background": "#FFA500", "border": "#FFA500", "highlight": {"border": "#FFA500"}}, "font": {"color": "white"}, "id": "Associate Professor Paul MacAry", "label": "Associate Professor Paul MacAry", "shape": "dot", "size": 30}, {"borderWidth": 4, "borderWidthSelected": 8, "color": {"background": "#007BFF", "border": "#007BFF", "highlight": {"border": "#007BFF"}}, "font": {"color": "white"}, "id": "Immunology Translational Research Programme", "label": "Immunology Translational Research Programme", "shape": "dot", "size": 30}, {"borderWidth": 4, "borderWidthSelected": 8, "color": {"background": "#007BFF", "border": "#007BFF", "highlight": {"border": "#007BFF"}}, "font": {"color": "white"}, "id": "Tan Tock Seng Hospital", "label": "Tan Tock Seng Hospital", "shape": "dot", "size": 30}, {"borderWidth": 4, "borderWidthSelected": 8, "color": {"background": "#FFA500", "border": "#FFA500", "highlight": {"border": "#FFA500"}}, "font": {"color": "white"}, "id": "Prof Jimmy So", "label": "Prof Jimmy So", "shape": "dot", "size": 30}, {"borderWidth": 4, "borderWidthSelected": 8, "color": {"background": "#FFA500", "border": "#FFA500", "highlight": {"border": "#FFA500"}}, "font": {"color": "white"}, "id": "Asst. Prof Kim Guowei", "label": "Asst. Prof Kim Guowei", "shape": "dot", "size": 30}, {"borderWidth": 4, "borderWidthSelected": 8, "color": {"background": "#007BFF", "border": "#007BFF", "highlight": {"border": "#007BFF"}}, "font": {"color": "white"}, "id": "Fujita Health University", "label": "Fujita Health University", "shape": "dot", "size": 30}, {"borderWidth": 4, "borderWidthSelected": 8, "color": {"background": "#BDC3C7", "border": "#BDC3C7", "highlight": {"border": "#BDC3C7"}}, "font": {"color": "white"}, "id": "Indonesians", "label": "Indonesians", "shape": "dot", "size": 30}, {"borderWidth": 4, "borderWidthSelected": 8, "color": {"background": "#BDC3C7", "border": "#BDC3C7", "highlight": {"border": "#BDC3C7"}}, "font": {"color": "white"}, "id": "isolated communities", "label": "isolated communities", "shape": "dot", "size": 30}, {"borderWidth": 4, "borderWidthSelected": 8, "color": {"background": "#BDC3C7", "border": "#BDC3C7", "highlight": {"border": "#BDC3C7"}}, "font": {"color": "white"}, "id": "isolated group", "label": "isolated group", "shape": "dot", "size": 30}, {"borderWidth": 4, "borderWidthSelected": 8, "color": {"background": "#BDC3C7", "border": "#BDC3C7", "highlight": {"border": "#BDC3C7"}}, "font": {"color": "white"}, "id": "dengue", "label": "dengue", "shape": "dot", "size": 30}, {"borderWidth": 4, "borderWidthSelected": 8, "color": {"background": "#BDC3C7", "border": "#BDC3C7", "highlight": {"border": "#BDC3C7"}}, "font": {"color": "white"}, "id": "stomach cancer", "label": "stomach cancer", "shape": "dot", "size": 30}, {"borderWidth": 4, "borderWidthSelected": 8, "color": {"background": "#BDC3C7", "border": "#BDC3C7", "highlight": {"border": "#BDC3C7"}}, "font": {"color": "white"}, "id": "heart attacks", "label": "heart attacks", "shape": "dot", "size": 30}, {"borderWidth": 4, "borderWidthSelected": 8, "color": {"background": "#BDC3C7", "border": "#BDC3C7", "highlight": {"border": "#BDC3C7"}}, "font": {"color": "white"}, "id": "NUS Medicine", "label": "NUS Medicine", "shape": "dot", "size": 30}, {"borderWidth": 4, "borderWidthSelected": 8, "color": {"background": "#BDC3C7", "border": "#BDC3C7", "highlight": {"border": "#BDC3C7"}}, "font": {"color": "white"}, "id": "diabetes", "label": "diabetes", "shape": "dot", "size": 30}, {"borderWidth": 4, "borderWidthSelected": 8, "color": {"background": "#BDC3C7", "border": "#BDC3C7", "highlight": {"border": "#BDC3C7"}}, "font": {"color": "white"}, "id": "menopause", "label": "menopause", "shape": "dot", "size": 30}, {"borderWidth": 4, "borderWidthSelected": 8, "color": {"background": "#BDC3C7", "border": "#BDC3C7", "highlight": {"border": "#BDC3C7"}}, "font": {"color": "white"}, "id": "National University of Singapore", "label": "National University of Singapore", "shape": "dot", "size": 30}, {"borderWidth": 4, "borderWidthSelected": 8, "color": {"background": "#BDC3C7", "border": "#BDC3C7", "highlight": {"border": "#BDC3C7"}}, "font": {"color": "white"}, "id": "NUH", "label": "NUH", "shape": "dot", "size": 30}, {"borderWidth": 4, "borderWidthSelected": 8, "color": {"background": "#BDC3C7", "border": "#BDC3C7", "highlight": {"border": "#BDC3C7"}}, "font": {"color": "white"}, "id": "NUS", "label": "NUS", "shape": "dot", "size": 30}]);
+                  edges = new vis.DataSet([{"arrows": "to", "color": "#D3D3D3", "font": {"align": "middle", "color": "white", "size": 14, "strokeColor": "rgba(0,0,0,0)", "vadjust": -10}, "from": "Ms Ramayana", "label": "attends", "to": "University of Jambi", "width": 5}, {"arrows": "to", "color": "#E74C3C", "font": {"align": "middle", "color": "white", "size": 14, "strokeColor": "rgba(0,0,0,0)", "vadjust": -10}, "from": "Ms Ramayana", "label": "duped by", "to": "ferienjob", "width": 5}, {"arrows": "to", "color": "#D3D3D3", "font": {"align": "middle", "color": "white", "size": 14, "strokeColor": "rgba(0,0,0,0)", "vadjust": -10}, "from": "Indonesian police", "label": "investigating", "to": "ferienjob", "width": 5}, {"arrows": "to", "color": "#27AE60", "font": {"align": "middle", "color": "white", "size": 14, "strokeColor": "rgba(0,0,0,0)", "vadjust": -10}, "from": "Indonesian Embassy", "label": "helped", "to": "Indonesians", "width": 5}, {"arrows": "to", "color": "#D3D3D3", "font": {"align": "middle", "color": "white", "size": 14, "strokeColor": "rgba(0,0,0,0)", "vadjust": -10}, "from": "Mdm Wong", "label": "introduced to", "to": "National University Hospital", "width": 5}, {"arrows": "to", "color": "#D3D3D3", "font": {"align": "middle", "color": "white", "size": 14, "strokeColor": "rgba(0,0,0,0)", "vadjust": -10}, "from": "Mdm Wong", "label": "attended", "to": "Mobile Hearing Clinic", "width": 5}, {"arrows": "to", "color": "#D3D3D3", "font": {"align": "middle", "color": "white", "size": 14, "strokeColor": "rgba(0,0,0,0)", "vadjust": -10}, "from": "Mdm Wong", "label": "referred to", "to": "Mobile Audiology Clinic", "width": 5}, {"arrows": "to", "color": "#D3D3D3", "font": {"align": "middle", "color": "white", "size": 14, "strokeColor": "rgba(0,0,0,0)", "vadjust": -10}, "from": "Mdm Wong", "label": "treated at", "to": "Bukit Batok Polyclinic", "width": 5}, {"arrows": "to", "color": "#27AE60", "font": {"align": "middle", "color": "white", "size": 14, "strokeColor": "rgba(0,0,0,0)", "vadjust": -10}, "from": "FUNAI", "label": "protecting", "to": "isolated communities", "width": 5}, {"arrows": "to", "color": "#D3D3D3", "font": {"align": "middle", "color": "white", "size": 14, "strokeColor": "rgba(0,0,0,0)", "vadjust": -10}, "from": "Beto Marubo", "label": "member of", "to": "Marubo", "width": 5}, {"arrows": "to", "color": "#27AE60", "font": {"align": "middle", "color": "white", "size": 14, "strokeColor": "rgba(0,0,0,0)", "vadjust": -10}, "from": "Beto Marubo", "label": "advocating for", "to": "isolated communities", "width": 5}, {"arrows": "to", "color": "#D3D3D3", "font": {"align": "middle", "color": "white", "size": 14, "strokeColor": "rgba(0,0,0,0)", "vadjust": -10}, "from": "Marubo", "label": "live in", "to": "Vale do Javari", "width": 5}, {"arrows": "to", "color": "#D3D3D3", "font": {"align": "middle", "color": "white", "size": 14, "strokeColor": "rgba(0,0,0,0)", "vadjust": -10}, "from": "Flecheiros", "label": "live in", "to": "Vale do Javari", "width": 5}, {"arrows": "to", "color": "#D3D3D3", "font": {"align": "middle", "color": "white", "size": 14, "strokeColor": "rgba(0,0,0,0)", "vadjust": -10}, "from": "Xuxu Korubo", "label": "member of", "to": "Korubo", "width": 5}, {"arrows": "to", "color": "#D3D3D3", "font": {"align": "middle", "color": "white", "size": 14, "strokeColor": "rgba(0,0,0,0)", "vadjust": -10}, "from": "Xuxu Korubo", "label": "contacted", "to": "isolated group", "width": 5}, {"arrows": "to", "color": "#E74C3C", "font": {"align": "middle", "color": "white", "size": 14, "strokeColor": "rgba(0,0,0,0)", "vadjust": -10}, "from": "Patricia Tambunan", "label": "infected with", "to": "dengue", "width": 5}, {"arrows": "to", "color": "#E74C3C", "font": {"align": "middle", "color": "white", "size": 14, "strokeColor": "rgba(0,0,0,0)", "vadjust": -10}, "from": "Mr Loh", "label": "infected with", "to": "dengue", "width": 5}, {"arrows": "to", "color": "#D3D3D3", "font": {"align": "middle", "color": "white", "size": 14, "strokeColor": "rgba(0,0,0,0)", "vadjust": -10}, "from": "Singapore", "label": "battling", "to": "dengue", "width": 5}, {"arrows": "to", "color": "#D3D3D3", "font": {"align": "middle", "color": "white", "size": 14, "strokeColor": "rgba(0,0,0,0)", "vadjust": -10}, "from": "Malaysia", "label": "battling", "to": "dengue", "width": 5}, {"arrows": "to", "color": "#D3D3D3", "font": {"align": "middle", "color": "white", "size": 14, "strokeColor": "rgba(0,0,0,0)", "vadjust": -10}, "from": "Indonesia", "label": "battling", "to": "dengue", "width": 5}, {"arrows": "to", "color": "#D3D3D3", "font": {"align": "middle", "color": "white", "size": 14, "strokeColor": "rgba(0,0,0,0)", "vadjust": -10}, "from": "World Health Organization", "label": "describes", "to": "dengue", "width": 5}, {"arrows": "to", "color": "#D3D3D3", "font": {"align": "middle", "color": "white", "size": 14, "strokeColor": "rgba(0,0,0,0)", "vadjust": -10}, "from": "National University Hospital", "label": "researched", "to": "stomach cancer", "width": 5}, {"arrows": "to", "color": "#D3D3D3", "font": {"align": "middle", "color": "white", "size": 14, "strokeColor": "rgba(0,0,0,0)", "vadjust": -10}, "from": "Duke-NUS Medical School", "label": "researched", "to": "stomach cancer", "width": 5}, {"arrows": "to", "color": "#D3D3D3", "font": {"align": "middle", "color": "white", "size": 14, "strokeColor": "rgba(0,0,0,0)", "vadjust": -10}, "from": "Yong Loo Lin School of Medicine", "label": "researched", "to": "stomach cancer", "width": 5}, {"arrows": "to", "color": "#D3D3D3", "font": {"align": "middle", "color": "white", "size": 14, "strokeColor": "rgba(0,0,0,0)", "vadjust": -10}, "from": "Seoul National University", "label": "researched", "to": "stomach cancer", "width": 5}, {"arrows": "to", "color": "#D3D3D3", "font": {"align": "middle", "color": "white", "size": 14, "strokeColor": "rgba(0,0,0,0)", "vadjust": -10}, "from": "Asst Prof Khoo Chin Meng", "label": "works at", "to": "National University Hospital", "width": 5}, {"arrows": "to", "color": "#D3D3D3", "font": {"align": "middle", "color": "white", "size": 14, "strokeColor": "rgba(0,0,0,0)", "vadjust": -10}, "from": "Asst Prof Khoo Chin Meng", "label": "works at", "to": "Yong Loo Lin School of Medicine", "width": 5}, {"arrows": "to", "color": "#D3D3D3", "font": {"align": "middle", "color": "white", "size": 14, "strokeColor": "rgba(0,0,0,0)", "vadjust": -10}, "from": "National University Heart Centre", "label": "researched", "to": "heart attacks", "width": 5}, {"arrows": "to", "color": "#D3D3D3", "font": {"align": "middle", "color": "white", "size": 14, "strokeColor": "rgba(0,0,0,0)", "vadjust": -10}, "from": "National University Health System", "label": "researched", "to": "heart attacks", "width": 5}, {"arrows": "to", "color": "#D3D3D3", "font": {"align": "middle", "color": "white", "size": 14, "strokeColor": "rgba(0,0,0,0)", "vadjust": -10}, "from": "Prof Roger Foo", "label": "directs", "to": "Cardiovascular- Metabolic Disease Translational Research Programme", "width": 5}, {"arrows": "to", "color": "#D3D3D3", "font": {"align": "middle", "color": "white", "size": 14, "strokeColor": "rgba(0,0,0,0)", "vadjust": -10}, "from": "Prof Roger Foo", "label": "works at", "to": "NUS Medicine", "width": 5}, {"arrows": "to", "color": "#D3D3D3", "font": {"align": "middle", "color": "white", "size": 14, "strokeColor": "rgba(0,0,0,0)", "vadjust": -10}, "from": "National University Hospital", "label": "researched", "to": "diabetes", "width": 5}, {"arrows": "to", "color": "#D3D3D3", "font": {"align": "middle", "color": "white", "size": 14, "strokeColor": "rgba(0,0,0,0)", "vadjust": -10}, "from": "Yong Loo Lin School of Medicine", "label": "researched", "to": "diabetes", "width": 5}, {"arrows": "to", "color": "#D3D3D3", "font": {"align": "middle", "color": "white", "size": 14, "strokeColor": "rgba(0,0,0,0)", "vadjust": -10}, "from": "Integrated Women\u2019s Health Programme", "label": "researched", "to": "menopause", "width": 5}, {"arrows": "to", "color": "#D3D3D3", "font": {"align": "middle", "color": "white", "size": 14, "strokeColor": "rgba(0,0,0,0)", "vadjust": -10}, "from": "National University Hospital", "label": "researched", "to": "menopause", "width": 5}, {"arrows": "to", "color": "#D3D3D3", "font": {"align": "middle", "color": "white", "size": 14, "strokeColor": "rgba(0,0,0,0)", "vadjust": -10}, "from": "National University of Singapore", "label": "researched", "to": "menopause", "width": 5}, {"arrows": "to", "color": "#D3D3D3", "font": {"align": "middle", "color": "white", "size": 14, "strokeColor": "rgba(0,0,0,0)", "vadjust": -10}, "from": "Professor Yong Eu Leong", "label": "works at", "to": "NUH", "width": 5}, {"arrows": "to", "color": "#D3D3D3", "font": {"align": "middle", "color": "white", "size": 14, "strokeColor": "rgba(0,0,0,0)", "vadjust": -10}, "from": "Singapore Space and Technology Ltd", "label": "collaborating with", "to": "Yong Loo Lin School of Medicine", "width": 5}, {"arrows": "to", "color": "#D3D3D3", "font": {"align": "middle", "color": "white", "size": 14, "strokeColor": "rgba(0,0,0,0)", "vadjust": -10}, "from": "Associate Professor Paul MacAry", "label": "works at", "to": "Immunology Translational Research Programme", "width": 5}, {"arrows": "to", "color": "#D3D3D3", "font": {"align": "middle", "color": "white", "size": 14, "strokeColor": "rgba(0,0,0,0)", "vadjust": -10}, "from": "Associate Professor Paul MacAry", "label": "directs", "to": "NUS", "width": 5}, {"arrows": "to", "color": "#D3D3D3", "font": {"align": "middle", "color": "white", "size": 14, "strokeColor": "rgba(0,0,0,0)", "vadjust": -10}, "from": "Associate Professor Paul MacAry", "label": "treated patients from", "to": "National University Hospital", "width": 5}, {"arrows": "to", "color": "#D3D3D3", "font": {"align": "middle", "color": "white", "size": 14, "strokeColor": "rgba(0,0,0,0)", "vadjust": -10}, "from": "Associate Professor Paul MacAry", "label": "treated patients from", "to": "Tan Tock Seng Hospital", "width": 5}, {"arrows": "to", "color": "#D3D3D3", "font": {"align": "middle", "color": "white", "size": 14, "strokeColor": "rgba(0,0,0,0)", "vadjust": -10}, "from": "Prof Jimmy So", "label": "works at", "to": "NUS Medicine", "width": 5}, {"arrows": "to", "color": "#D3D3D3", "font": {"align": "middle", "color": "white", "size": 14, "strokeColor": "rgba(0,0,0,0)", "vadjust": -10}, "from": "Asst. Prof Kim Guowei", "label": "works at", "to": "NUS Medicine", "width": 5}, {"arrows": "to", "color": "#D3D3D3", "font": {"align": "middle", "color": "white", "size": 14, "strokeColor": "rgba(0,0,0,0)", "vadjust": -10}, "from": "Prof Jimmy So", "label": "performed surgery at", "to": "Fujita Health University", "width": 5}, {"arrows": "to", "color": "#D3D3D3", "font": {"align": "middle", "color": "white", "size": 14, "strokeColor": "rgba(0,0,0,0)", "vadjust": -10}, "from": "Asst. Prof Kim Guowei", "label": "performed surgery at", "to": "Fujita Health University", "width": 5}]);
+
+                  nodeColors = {};
+                  allNodes = nodes.get({ returnType: "Object" });
+                  for (nodeId in allNodes) {
+                    nodeColors[nodeId] = allNodes[nodeId].color;
+                  }
+                  allEdges = edges.get({ returnType: "Object" });
+                  // adding nodes and edges to the graph
+                  data = {nodes: nodes, edges: edges};
+
+                  var options = {"physics": {"barnesHut": {"gravitationalConstant": -5050, "centralGravity": 0.75, "springLength": 180, "damping": 0.5, "avoidOverlap": 1}}};
+
+                  
+
+
+                  
+
+                  network = new vis.Network(container, data, options);
+
+                  
+
+                  
+
+                  
+
+
+                  
+
+                  return network;
+
+              }
+              drawGraph();
+        </script>
+    </body>
+</html>
+    <style>
+        .legend {
+            position: absolute;
+            top: 20px;
+            right: 20px;
+            background: white;
+            padding: 10px;
+            border-radius: 5px;
+            font-size: 14px;
+            font-family: Arial, sans-serif;
+            z-index: 1000;
+        }
+        .legend-item {
+            display: flex;
+            align-items: center;
+            margin-bottom: 5px;
+        }
+        .legend-color {
+            width: 15px;
+            height: 15px;
+            margin-right: 5px;
+            border-radius: 3px;
+        }
+    </style>
+    <div class="legend">
+        <strong>Legend</strong>
+        <div class="legend-item"><div class="legend-color" style="background:#FFA500"></div>Person (PER)</div>
+        <div class="legend-item"><div class="legend-color" style="background:#007BFF"></div>Organisation (ORG)</div>
+        <div class="legend-item"><div class="legend-color" style="background:#8E44AD"></div>Location (LOC)</div>
+        <div class="legend-item"><div class="legend-color" style="background:#1ABC9C"></div>Event (EVT)</div>
+        <div class="legend-item"><div class="legend-color" style="background:#BDC3C7"></div>Miscellaneous (MISC)</div>
+        <hr>
+        <div class="legend-item"><div class="legend-color" style="background:#27AE60"></div>Positive (PV)</div>
+        <div class="legend-item"><div class="legend-color" style="background:#E74C3C"></div>Negative (NG)</div>
+        <div class="legend-item"><div class="legend-color" style="background:#D3D3D3"></div>Neutral (NE)</div>
+    </div>
+    
