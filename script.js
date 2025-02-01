@@ -84,7 +84,8 @@ function displaySearchResults(results) {
             const listItem = document.createElement('li');
             const link = document.createElement('a');
             link.href = `${result.folder}/${result.file}`;
-            link.textContent = `${node.label} (Found in ${result.file})`;
+            var file_str = String(result.file).slice(0,-5)
+            link.textContent = `${node.label} (${file_str})`;
             listItem.appendChild(link);
             searchList.appendChild(listItem);
         });
