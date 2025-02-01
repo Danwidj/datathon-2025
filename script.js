@@ -84,13 +84,38 @@ function displaySearchResults(results) {
             const listItem = document.createElement('li');
             const link = document.createElement('a');
             link.href = `${result.folder}/${result.file}`;
-            var file_str = String(result.file).slice(0,-5)
-            link.textContent = `${node.label} (${file_str})`;
+            var file_str = formatFileName(result.file)
+            link.textContent = `${formatNodeName(node.label)} (${file_str})`;
             listItem.appendChild(link);
             searchList.appendChild(listItem);
         });
     });
 }
+
+function formatFileName(fileName) {
+    // Remove the .html extension
+    let nameWithoutExtension = fileName.replace(/\.html$/, "");
+    
+    // Replace %20, % and _ with spaces
+    let formattedName = nameWithoutExtension.replace(/(%20|[%_])/g, " ");
+    
+    // Capitalize the first letter
+    formattedName = formattedName.charAt(0).toUpperCase() + formattedName.slice(1);
+    
+    return formattedName;
+}
+
+function formatNodeName(label) {
+    const words = label.split(" ");
+
+    for (let i = 0; i < words.length; i++) {
+        words[i] = words[i][0].toUpperCase() + words[i].substr(1);
+    }
+
+    return words.join(" ");
+
+}
+
 
 // Event listener for dynamic search
 document.getElementById('search-box').addEventListener('input', async (event) => {
@@ -122,7 +147,8 @@ document.addEventListener('DOMContentLoaded', async function() {
         const listItem = document.createElement('li');
         const link = document.createElement('a');
         link.href = `wikileaks_graph/${file}`;
-        link.textContent = file;
+        var file_str = formatFileName(file)
+        link.textContent = file_str;
         listItem.appendChild(link);
         wikileaksList.appendChild(listItem);
     });
@@ -131,7 +157,8 @@ document.addEventListener('DOMContentLoaded', async function() {
         const listItem = document.createElement('li');
         const link = document.createElement('a');
         link.href = `news_graph/${file}`;
-        link.textContent = file;
+        var file_str = formatFileName(file)
+        link.textContent = file_str;
         listItem.appendChild(link);
         newsList.appendChild(listItem);
     });
