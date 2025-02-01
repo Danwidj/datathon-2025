@@ -1,96 +1,102 @@
 // Function to fetch graph files from a specific folder
-// Function to fetch graph files from a specific folder
 async function fetchGraphFiles(folder) {
-    const graphFiles = [];
-    
-    const response = await fetch(`${folder}/`);
-    const data = await response.text();
-    const parser = new DOMParser();
-    const doc = parser.parseFromString(data, 'text/html');
-    const files = doc.querySelectorAll('a'); // Get all the anchor tags representing files
-
-    files.forEach(file => {
-        if (file.href.endsWith('.html')) { // Only include .html files
-            graphFiles.push(file.href.split('/').pop()); // Extract the filename (graph_1.html)
-        }
-    });
-
-    return graphFiles;
-}
-
-// Function to extract node IDs from the inline JavaScript in each graph file
-function extractNodeIdsFromContent(content) {
-    const nodeIds = [];
-    const nodeRegex = /nodes\s*=\s*new\s*vis\.DataSet\(\[([^\]]+)\]\)/; // Regex to find the node array
-    const match = content.match(nodeRegex);
-
-    if (match) {
-        const nodesData = match[1]; // This contains the JSON-like array of nodes
-        const nodeObjects = JSON.parse(`[${nodesData}]`); // Parse the JSON array
-
-        nodeObjects.forEach(node => {
-            if (node.id) {
-                nodeIds.push({ id: node.id, label: node.label }); // Push the node ID and label
-            }
-        });
+    try {
+        const response = await fetch(`${folder}/`);
+        const data = await response.text();
+        const parser = new DOMParser();
+        const doc = parser.parseFromString(data, 'text/html');
+        const files = Array.from(doc.querySelectorAll('a'))
+            .map(link => link.href.split('/').pop())
+            .filter(filename => filename.endsWith('.html'));
+        return files;
+    } catch (error) {
+        console.error(`Error fetching files from ${folder}:`, error);
+        return [];
     }
-
-    return nodeIds;
 }
 
-// Function to fetch and check the content of the graph files for a search term in node IDs
+// Function to extract node IDs from inline JavaScript in each graph file
+function extractNodeIdsFromContent(content) {
+    try {
+        const nodeIds = [];
+        const nodeRegex = /nodes\s*=\s*new\s*vis\.DataSet\(\[([\s\S]+?)\]\)/;
+        const match = content.match(nodeRegex);
+
+        if (match) {
+            const nodesData = `[${match[1]}]`.replace(/,\s*]/, ']'); // Ensure valid JSON
+            const nodeObjects = JSON.parse(nodesData);
+
+            nodeObjects.forEach(node => {
+                if (node.id) {
+                    nodeIds.push({ id: node.id, label: node.label });
+                }
+            });
+        }
+
+        return nodeIds;
+    } catch (error) {
+        console.error("Error parsing node IDs:", error);
+        return [];
+    }
+}
+
+// Function to search graph contents for the input query
 async function searchGraphContent(searchTerm, graphFiles, folder) {
     const results = [];
 
     for (const file of graphFiles) {
-        const response = await fetch(`${folder}/${file}`);
-        const data = await response.text();
+        try {
+            const response = await fetch(`${folder}/${file}`);
+            const data = await response.text();
+            const nodeIds = extractNodeIdsFromContent(data);
+            const matchedNodes = nodeIds.filter(node => 
+                node.id.toLowerCase().includes(searchTerm.toLowerCase())
+            );
 
-        // Extract node IDs and check if the search term exists in any of them
-        const nodeIds = extractNodeIdsFromContent(data);
-
-        const matchedNodes = nodeIds.filter(node => node.id.toLowerCase().includes(searchTerm.toLowerCase()));
-
-        if (matchedNodes.length > 0) {
-            results.push({ file, nodes: matchedNodes });
+            if (matchedNodes.length > 0) {
+                results.push({ file, folder, nodes: matchedNodes });
+            }
+        } catch (error) {
+            console.error(`Error reading file ${file}:`, error);
         }
     }
 
     return results;
 }
 
-// Function to display search results dynamically as the user types
+// Function to display search results dynamically
 function displaySearchResults(results) {
     const searchResultsContainer = document.getElementById('search-results');
     const searchList = document.getElementById('search-list');
     
-    searchList.innerHTML = ''; // Clear the current content
+    searchList.innerHTML = ''; // Clear previous results
+
+    searchResultsContainer.style.display = 'block';
+
 
     if (results.length === 0) {
-        searchResultsContainer.style.display = 'none'; // Hide if no results
-        return;
+        searchList.innerHTML = "<li><h3>No Search Results Found</h3></li>"
     }
 
-    // Show the results container
-    searchResultsContainer.style.display = 'block';
-    console.log(results)
+
     results.forEach(result => {
         result.nodes.forEach(node => {
             const listItem = document.createElement('li');
             const link = document.createElement('a');
-            link.href = `wikileaks_graph/${result.file}`;
-            link.textContent = `${result.file}: ${node.label}`;
+            link.href = `${result.folder}/${result.file}`;
+            link.textContent = `${node.label} (Found in ${result.file})`;
             listItem.appendChild(link);
             searchList.appendChild(listItem);
         });
     });
 }
 
-// Function to handle input event and trigger search dynamically
+// Event listener for dynamic search
 document.getElementById('search-box').addEventListener('input', async (event) => {
     const searchTerm = event.target.value.trim();
+
     if (!searchTerm) {
-        document.getElementById('search-results').style.display = 'none'; // Hide if search box is empty
+        document.getElementById('search-results').style.display = 'none';
         return;
     }
 
@@ -100,11 +106,10 @@ document.getElementById('search-box').addEventListener('input', async (event) =>
     const wikileaksResults = await searchGraphContent(searchTerm, wikileaksFiles, 'wikileaks_graph');
     const newsResults = await searchGraphContent(searchTerm, newsFiles, 'news_graph');
 
-    const allResults = [...wikileaksResults, ...newsResults];
-    displaySearchResults(allResults);
+    displaySearchResults([...wikileaksResults, ...newsResults]);
 });
 
-// Fetch and display graphs for both folders on initial load
+// Function to load and display all graphs initially
 document.addEventListener('DOMContentLoaded', async function() {
     const wikileaksFiles = await fetchGraphFiles('wikileaks_graph');
     const newsFiles = await fetchGraphFiles('news_graph');
