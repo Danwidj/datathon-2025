@@ -1,0 +1,358 @@
+<html>
+    <head>
+        <meta charset="utf-8">
+        
+            <script>function neighbourhoodHighlight(params) {
+  // console.log("in nieghbourhoodhighlight");
+  allNodes = nodes.get({ returnType: "Object" });
+  // originalNodes = JSON.parse(JSON.stringify(allNodes));
+  // if something is selected:
+  if (params.nodes.length > 0) {
+    highlightActive = true;
+    var i, j;
+    var selectedNode = params.nodes[0];
+    var degrees = 2;
+
+    // mark all nodes as hard to read.
+    for (let nodeId in allNodes) {
+      // nodeColors[nodeId] = allNodes[nodeId].color;
+      allNodes[nodeId].color = "rgba(200,200,200,0.5)";
+      if (allNodes[nodeId].hiddenLabel === undefined) {
+        allNodes[nodeId].hiddenLabel = allNodes[nodeId].label;
+        allNodes[nodeId].label = undefined;
+      }
+    }
+    var connectedNodes = network.getConnectedNodes(selectedNode);
+    var allConnectedNodes = [];
+
+    // get the second degree nodes
+    for (i = 1; i < degrees; i++) {
+      for (j = 0; j < connectedNodes.length; j++) {
+        allConnectedNodes = allConnectedNodes.concat(
+          network.getConnectedNodes(connectedNodes[j])
+        );
+      }
+    }
+
+    // all second degree nodes get a different color and their label back
+    for (i = 0; i < allConnectedNodes.length; i++) {
+      // allNodes[allConnectedNodes[i]].color = "pink";
+      allNodes[allConnectedNodes[i]].color = "rgba(150,150,150,0.75)";
+      if (allNodes[allConnectedNodes[i]].hiddenLabel !== undefined) {
+        allNodes[allConnectedNodes[i]].label =
+          allNodes[allConnectedNodes[i]].hiddenLabel;
+        allNodes[allConnectedNodes[i]].hiddenLabel = undefined;
+      }
+    }
+
+    // all first degree nodes get their own color and their label back
+    for (i = 0; i < connectedNodes.length; i++) {
+      // allNodes[connectedNodes[i]].color = undefined;
+      allNodes[connectedNodes[i]].color = nodeColors[connectedNodes[i]];
+      if (allNodes[connectedNodes[i]].hiddenLabel !== undefined) {
+        allNodes[connectedNodes[i]].label =
+          allNodes[connectedNodes[i]].hiddenLabel;
+        allNodes[connectedNodes[i]].hiddenLabel = undefined;
+      }
+    }
+
+    // the main node gets its own color and its label back.
+    // allNodes[selectedNode].color = undefined;
+    allNodes[selectedNode].color = nodeColors[selectedNode];
+    if (allNodes[selectedNode].hiddenLabel !== undefined) {
+      allNodes[selectedNode].label = allNodes[selectedNode].hiddenLabel;
+      allNodes[selectedNode].hiddenLabel = undefined;
+    }
+  } else if (highlightActive === true) {
+    // console.log("highlightActive was true");
+    // reset all nodes
+    for (let nodeId in allNodes) {
+      // allNodes[nodeId].color = "purple";
+      allNodes[nodeId].color = nodeColors[nodeId];
+      // delete allNodes[nodeId].color;
+      if (allNodes[nodeId].hiddenLabel !== undefined) {
+        allNodes[nodeId].label = allNodes[nodeId].hiddenLabel;
+        allNodes[nodeId].hiddenLabel = undefined;
+      }
+    }
+    highlightActive = false;
+  }
+
+  // transform the object into an array
+  var updateArray = [];
+  if (params.nodes.length > 0) {
+    for (let nodeId in allNodes) {
+      if (allNodes.hasOwnProperty(nodeId)) {
+        // console.log(allNodes[nodeId]);
+        updateArray.push(allNodes[nodeId]);
+      }
+    }
+    nodes.update(updateArray);
+  } else {
+    // console.log("Nothing was selected");
+    for (let nodeId in allNodes) {
+      if (allNodes.hasOwnProperty(nodeId)) {
+        // console.log(allNodes[nodeId]);
+        // allNodes[nodeId].color = {};
+        updateArray.push(allNodes[nodeId]);
+      }
+    }
+    nodes.update(updateArray);
+  }
+}
+
+function filterHighlight(params) {
+  allNodes = nodes.get({ returnType: "Object" });
+  // if something is selected:
+  if (params.nodes.length > 0) {
+    filterActive = true;
+    let selectedNodes = params.nodes;
+
+    // hiding all nodes and saving the label
+    for (let nodeId in allNodes) {
+      allNodes[nodeId].hidden = true;
+      if (allNodes[nodeId].savedLabel === undefined) {
+        allNodes[nodeId].savedLabel = allNodes[nodeId].label;
+        allNodes[nodeId].label = undefined;
+      }
+    }
+
+    for (let i=0; i < selectedNodes.length; i++) {
+      allNodes[selectedNodes[i]].hidden = false;
+      if (allNodes[selectedNodes[i]].savedLabel !== undefined) {
+        allNodes[selectedNodes[i]].label = allNodes[selectedNodes[i]].savedLabel;
+        allNodes[selectedNodes[i]].savedLabel = undefined;
+      }
+    }
+
+  } else if (filterActive === true) {
+    // reset all nodes
+    for (let nodeId in allNodes) {
+      allNodes[nodeId].hidden = false;
+      if (allNodes[nodeId].savedLabel !== undefined) {
+        allNodes[nodeId].label = allNodes[nodeId].savedLabel;
+        allNodes[nodeId].savedLabel = undefined;
+      }
+    }
+    filterActive = false;
+  }
+
+  // transform the object into an array
+  var updateArray = [];
+  if (params.nodes.length > 0) {
+    for (let nodeId in allNodes) {
+      if (allNodes.hasOwnProperty(nodeId)) {
+        updateArray.push(allNodes[nodeId]);
+      }
+    }
+    nodes.update(updateArray);
+  } else {
+    for (let nodeId in allNodes) {
+      if (allNodes.hasOwnProperty(nodeId)) {
+        updateArray.push(allNodes[nodeId]);
+      }
+    }
+    nodes.update(updateArray);
+  }
+}
+
+function selectNode(nodes) {
+  network.selectNodes(nodes);
+  neighbourhoodHighlight({ nodes: nodes });
+  return nodes;
+}
+
+function selectNodes(nodes) {
+  network.selectNodes(nodes);
+  filterHighlight({nodes: nodes});
+  return nodes;
+}
+
+function highlightFilter(filter) {
+  let selectedNodes = []
+  let selectedProp = filter['property']
+  if (filter['item'] === 'node') {
+    let allNodes = nodes.get({ returnType: "Object" });
+    for (let nodeId in allNodes) {
+      if (allNodes[nodeId][selectedProp] && filter['value'].includes((allNodes[nodeId][selectedProp]).toString())) {
+        selectedNodes.push(nodeId)
+      }
+    }
+  }
+  else if (filter['item'] === 'edge'){
+    let allEdges = edges.get({returnType: 'object'});
+    // check if the selected property exists for selected edge and select the nodes connected to the edge
+    for (let edge in allEdges) {
+      if (allEdges[edge][selectedProp] && filter['value'].includes((allEdges[edge][selectedProp]).toString())) {
+        selectedNodes.push(allEdges[edge]['from'])
+        selectedNodes.push(allEdges[edge]['to'])
+      }
+    }
+  }
+  selectNodes(selectedNodes)
+}</script>
+            <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/vis-network/9.1.2/dist/dist/vis-network.min.css" integrity="sha512-WgxfT5LWjfszlPHXRmBWHkV2eceiWTOBvrKCNbdgDYTHrT2AeLCGbF4sZlZw3UMN3WtL0tGUoIAKsu8mllg/XA==" crossorigin="anonymous" referrerpolicy="no-referrer" />
+            <script src="https://cdnjs.cloudflare.com/ajax/libs/vis-network/9.1.2/dist/vis-network.min.js" integrity="sha512-LnvoEWDFrqGHlHmDD2101OrLcbsfkrzoSpvtSQtxK3RMnRV0eOkhhBN2dXHKRrUU8p2DGRTk35n4O8nWSVe1mQ==" crossorigin="anonymous" referrerpolicy="no-referrer"></script>
+            
+            
+            
+            
+            
+            
+
+        
+<center>
+<h1></h1>
+</center>
+
+<!-- <link rel="stylesheet" href="../node_modules/vis/dist/vis.min.css" type="text/css" />
+<script type="text/javascript" src="../node_modules/vis/dist/vis.js"> </script>-->
+        <link
+          href="https://cdn.jsdelivr.net/npm/bootstrap@5.0.0-beta3/dist/css/bootstrap.min.css"
+          rel="stylesheet"
+          integrity="sha384-eOJMYsd53ii+scO/bJGFsiCZc+5NDVN2yr8+0RDqr0Ql0h+rP48ckxlpbzKgwra6"
+          crossorigin="anonymous"
+        />
+        <script
+          src="https://cdn.jsdelivr.net/npm/bootstrap@5.0.0-beta3/dist/js/bootstrap.bundle.min.js"
+          integrity="sha384-JEW9xMcG8R+pH31jmWH6WWP0WintQrMb4s7ZOdauHnUtxwoG2vI5DkLtS3qm9Ekf"
+          crossorigin="anonymous"
+        ></script>
+
+
+        <center>
+          <h1></h1>
+        </center>
+        <style type="text/css">
+
+             #mynetwork {
+                 width: 100%;
+                 height: 100vh;
+                 background-color: #222222;
+                 border: 1px solid lightgray;
+                 position: relative;
+                 float: left;
+             }
+
+             
+
+             
+
+             
+        </style>
+    </head>
+
+
+    <body>
+        <div class="card" style="width: 100%">
+            
+            
+            <div id="mynetwork" class="card-body"></div>
+        </div>
+
+        
+        
+
+        <script type="text/javascript">
+
+              // initialize global variables.
+              var edges;
+              var nodes;
+              var allNodes;
+              var allEdges;
+              var nodeColors;
+              var originalNodes;
+              var network;
+              var container;
+              var options, data;
+              var filter = {
+                  item : '',
+                  property : '',
+                  value : []
+              };
+
+              
+
+              
+
+              // This method is responsible for drawing the graph, returns the drawn network
+              function drawGraph() {
+                  var container = document.getElementById('mynetwork');
+
+                  
+
+                  // parsing and collecting nodes and edges from the python
+                  nodes = new vis.DataSet([{"borderWidth": 4, "borderWidthSelected": 8, "color": {"background": "#007BFF", "border": "#007BFF", "highlight": {"border": "#007BFF"}}, "font": {"color": "white"}, "id": "US Treasury", "label": "US Treasury", "shape": "dot", "size": 30}, {"borderWidth": 4, "borderWidthSelected": 8, "color": {"background": "#007BFF", "border": "#007BFF", "highlight": {"border": "#007BFF"}}, "font": {"color": "white"}, "id": "Hamas", "label": "Hamas", "shape": "dot", "size": 30}, {"borderWidth": 4, "borderWidthSelected": 8, "color": {"background": "#8E44AD", "border": "#8E44AD", "highlight": {"border": "#8E44AD"}}, "font": {"color": "white"}, "id": "Gaza", "label": "Gaza", "shape": "dot", "size": 30}, {"borderWidth": 4, "borderWidthSelected": 8, "color": {"background": "#8E44AD", "border": "#8E44AD", "highlight": {"border": "#8E44AD"}}, "font": {"color": "white"}, "id": "Sudan", "label": "Sudan", "shape": "dot", "size": 30}, {"borderWidth": 4, "borderWidthSelected": 8, "color": {"background": "#8E44AD", "border": "#8E44AD", "highlight": {"border": "#8E44AD"}}, "font": {"color": "white"}, "id": "T\u00fcrkiye", "label": "T\u00fcrkiye", "shape": "dot", "size": 30}, {"borderWidth": 4, "borderWidthSelected": 8, "color": {"background": "#8E44AD", "border": "#8E44AD", "highlight": {"border": "#8E44AD"}}, "font": {"color": "white"}, "id": "Algeria", "label": "Algeria", "shape": "dot", "size": 30}, {"borderWidth": 4, "borderWidthSelected": 8, "color": {"background": "#8E44AD", "border": "#8E44AD", "highlight": {"border": "#8E44AD"}}, "font": {"color": "white"}, "id": "Qatar", "label": "Qatar", "shape": "dot", "size": 30}, {"borderWidth": 4, "borderWidthSelected": 8, "color": {"background": "#8E44AD", "border": "#8E44AD", "highlight": {"border": "#8E44AD"}}, "font": {"color": "white"}, "id": "Israel", "label": "Israel", "shape": "dot", "size": 30}, {"borderWidth": 4, "borderWidthSelected": 8, "color": {"background": "#8E44AD", "border": "#8E44AD", "highlight": {"border": "#8E44AD"}}, "font": {"color": "white"}, "id": "West Bank", "label": "West Bank", "shape": "dot", "size": 30}, {"borderWidth": 4, "borderWidthSelected": 8, "color": {"background": "#007BFF", "border": "#007BFF", "highlight": {"border": "#007BFF"}}, "font": {"color": "white"}, "id": "United Nations", "label": "United Nations", "shape": "dot", "size": 30}, {"borderWidth": 4, "borderWidthSelected": 8, "color": {"background": "#FFA500", "border": "#FFA500", "highlight": {"border": "#FFA500"}}, "font": {"color": "white"}, "id": "Volker Turk", "label": "Volker Turk", "shape": "dot", "size": 30}, {"borderWidth": 4, "borderWidthSelected": 8, "color": {"background": "#FFA500", "border": "#FFA500", "highlight": {"border": "#FFA500"}}, "font": {"color": "white"}, "id": "Chuck Schumer", "label": "Chuck Schumer", "shape": "dot", "size": 30}, {"borderWidth": 4, "borderWidthSelected": 8, "color": {"background": "#FFA500", "border": "#FFA500", "highlight": {"border": "#FFA500"}}, "font": {"color": "white"}, "id": "Benjamin Netanyahu", "label": "Benjamin Netanyahu", "shape": "dot", "size": 30}, {"borderWidth": 4, "borderWidthSelected": 8, "color": {"background": "#FFA500", "border": "#FFA500", "highlight": {"border": "#FFA500"}}, "font": {"color": "white"}, "id": "Erdogan", "label": "Erdogan", "shape": "dot", "size": 30}, {"borderWidth": 4, "borderWidthSelected": 8, "color": {"background": "#FFA500", "border": "#FFA500", "highlight": {"border": "#FFA500"}}, "font": {"color": "white"}, "id": "Donald Trump", "label": "Donald Trump", "shape": "dot", "size": 30}, {"borderWidth": 4, "borderWidthSelected": 8, "color": {"background": "#FFA500", "border": "#FFA500", "highlight": {"border": "#FFA500"}}, "font": {"color": "white"}, "id": "Qassim Suleimani", "label": "Qassim Suleimani", "shape": "dot", "size": 30}, {"borderWidth": 4, "borderWidthSelected": 8, "color": {"background": "#007BFF", "border": "#007BFF", "highlight": {"border": "#007BFF"}}, "font": {"color": "white"}, "id": "Hadassah Hospital", "label": "Hadassah Hospital", "shape": "dot", "size": 30}, {"borderWidth": 4, "borderWidthSelected": 8, "color": {"background": "#FFA500", "border": "#FFA500", "highlight": {"border": "#FFA500"}}, "font": {"color": "white"}, "id": "Yariv Levin", "label": "Yariv Levin", "shape": "dot", "size": 30}, {"borderWidth": 4, "borderWidthSelected": 8, "color": {"background": "#8E44AD", "border": "#8E44AD", "highlight": {"border": "#8E44AD"}}, "font": {"color": "white"}, "id": "Turkey", "label": "Turkey", "shape": "dot", "size": 30}, {"borderWidth": 4, "borderWidthSelected": 8, "color": {"background": "#FFA500", "border": "#FFA500", "highlight": {"border": "#FFA500"}}, "font": {"color": "white"}, "id": "Tayyip Erdogan", "label": "Tayyip Erdogan", "shape": "dot", "size": 30}, {"borderWidth": 4, "borderWidthSelected": 8, "color": {"background": "#FFA500", "border": "#FFA500", "highlight": {"border": "#FFA500"}}, "font": {"color": "white"}, "id": "Mordi and Natali Oknin", "label": "Mordi and Natali Oknin", "shape": "dot", "size": 30}, {"borderWidth": 4, "borderWidthSelected": 8, "color": {"background": "#FFA500", "border": "#FFA500", "highlight": {"border": "#FFA500"}}, "font": {"color": "white"}, "id": "Abigail Edan", "label": "Abigail Edan", "shape": "dot", "size": 30}, {"borderWidth": 4, "borderWidthSelected": 8, "color": {"background": "#8E44AD", "border": "#8E44AD", "highlight": {"border": "#8E44AD"}}, "font": {"color": "white"}, "id": "Chad", "label": "Chad", "shape": "dot", "size": 30}, {"borderWidth": 4, "borderWidthSelected": 8, "color": {"background": "#FFA500", "border": "#FFA500", "highlight": {"border": "#FFA500"}}, "font": {"color": "white"}, "id": "Idriss Deby", "label": "Idriss Deby", "shape": "dot", "size": 30}, {"borderWidth": 4, "borderWidthSelected": 8, "color": {"background": "#FFA500", "border": "#FFA500", "highlight": {"border": "#FFA500"}}, "font": {"color": "white"}, "id": "Noa Tishby", "label": "Noa Tishby", "shape": "dot", "size": 30}, {"borderWidth": 4, "borderWidthSelected": 8, "color": {"background": "#FFA500", "border": "#FFA500", "highlight": {"border": "#FFA500"}}, "font": {"color": "white"}, "id": "Gal Gadot", "label": "Gal Gadot", "shape": "dot", "size": 30}, {"borderWidth": 4, "borderWidthSelected": 8, "color": {"background": "#8E44AD", "border": "#8E44AD", "highlight": {"border": "#8E44AD"}}, "font": {"color": "white"}, "id": "Canada", "label": "Canada", "shape": "dot", "size": 30}, {"borderWidth": 4, "borderWidthSelected": 8, "color": {"background": "#BDC3C7", "border": "#BDC3C7", "highlight": {"border": "#BDC3C7"}}, "font": {"color": "white"}, "id": "Palestinians", "label": "Palestinians", "shape": "dot", "size": 30}, {"borderWidth": 4, "borderWidthSelected": 8, "color": {"background": "#BDC3C7", "border": "#BDC3C7", "highlight": {"border": "#BDC3C7"}}, "font": {"color": "white"}, "id": "United States", "label": "United States", "shape": "dot", "size": 30}, {"borderWidth": 4, "borderWidthSelected": 8, "color": {"background": "#BDC3C7", "border": "#BDC3C7", "highlight": {"border": "#BDC3C7"}}, "font": {"color": "white"}, "id": "Palestinian prisoners", "label": "Palestinian prisoners", "shape": "dot", "size": 30}]);
+                  edges = new vis.DataSet([{"arrows": "to", "color": "#E74C3C", "font": {"align": "middle", "color": "white", "size": 14, "strokeColor": "rgba(0,0,0,0)", "vadjust": -10}, "from": "US Treasury", "label": "imposed sanctions on", "to": "Hamas", "width": 5}, {"arrows": "to", "color": "#D3D3D3", "font": {"align": "middle", "color": "white", "size": 14, "strokeColor": "rgba(0,0,0,0)", "vadjust": -10}, "from": "Hamas", "label": "controls", "to": "Gaza", "width": 5}, {"arrows": "to", "color": "#E74C3C", "font": {"align": "middle", "color": "white", "size": 14, "strokeColor": "rgba(0,0,0,0)", "vadjust": -10}, "from": "Hamas", "label": "attacked", "to": "Israel", "width": 5}, {"arrows": "to", "color": "#E74C3C", "font": {"align": "middle", "color": "white", "size": 14, "strokeColor": "rgba(0,0,0,0)", "vadjust": -10}, "from": "Israel", "label": "aimed at destroying", "to": "Hamas", "width": 5}, {"arrows": "to", "color": "#E74C3C", "font": {"align": "middle", "color": "white", "size": 14, "strokeColor": "rgba(0,0,0,0)", "vadjust": -10}, "from": "Israel", "label": "attacking", "to": "Palestinians", "width": 5}, {"arrows": "to", "color": "#E74C3C", "font": {"align": "middle", "color": "white", "size": 14, "strokeColor": "rgba(0,0,0,0)", "vadjust": -10}, "from": "United Nations", "label": "denounced", "to": "Israel", "width": 5}, {"arrows": "to", "color": "#E74C3C", "font": {"align": "middle", "color": "white", "size": 14, "strokeColor": "rgba(0,0,0,0)", "vadjust": -10}, "from": "Volker Turk", "label": "criticized", "to": "Israel", "width": 5}, {"arrows": "to", "color": "#E74C3C", "font": {"align": "middle", "color": "white", "size": 14, "strokeColor": "rgba(0,0,0,0)", "vadjust": -10}, "from": "Chuck Schumer", "label": "criticized", "to": "Benjamin Netanyahu", "width": 5}, {"arrows": "to", "color": "#E74C3C", "font": {"align": "middle", "color": "white", "size": 14, "strokeColor": "rgba(0,0,0,0)", "vadjust": -10}, "from": "Erdogan", "label": "criticized", "to": "Israel", "width": 5}, {"arrows": "to", "color": "#E74C3C", "font": {"align": "middle", "color": "white", "size": 14, "strokeColor": "rgba(0,0,0,0)", "vadjust": -10}, "from": "Erdogan", "label": "angry at", "to": "United States", "width": 5}, {"arrows": "to", "color": "#E74C3C", "font": {"align": "middle", "color": "white", "size": 14, "strokeColor": "rgba(0,0,0,0)", "vadjust": -10}, "from": "Donald Trump", "label": "criticized", "to": "Benjamin Netanyahu", "width": 5}, {"arrows": "to", "color": "#D3D3D3", "font": {"align": "middle", "color": "white", "size": 14, "strokeColor": "rgba(0,0,0,0)", "vadjust": -10}, "from": "Hadassah Hospital", "label": "treated", "to": "Benjamin Netanyahu", "width": 5}, {"arrows": "to", "color": "#D3D3D3", "font": {"align": "middle", "color": "white", "size": 14, "strokeColor": "rgba(0,0,0,0)", "vadjust": -10}, "from": "Yariv Levin", "label": "stepped in for", "to": "Benjamin Netanyahu", "width": 5}, {"arrows": "to", "color": "#27AE60", "font": {"align": "middle", "color": "white", "size": 14, "strokeColor": "rgba(0,0,0,0)", "vadjust": -10}, "from": "Turkey", "label": "freed", "to": "Mordi and Natali Oknin", "width": 5}, {"arrows": "to", "color": "#D3D3D3", "font": {"align": "middle", "color": "white", "size": 14, "strokeColor": "rgba(0,0,0,0)", "vadjust": -10}, "from": "Hamas", "label": "wants to extend pause in fighting", "to": "Israel", "width": 5}, {"arrows": "to", "color": "#27AE60", "font": {"align": "middle", "color": "white", "size": 14, "strokeColor": "rgba(0,0,0,0)", "vadjust": -10}, "from": "Israel", "label": "released", "to": "Palestinian prisoners", "width": 5}, {"arrows": "to", "color": "#D3D3D3", "font": {"align": "middle", "color": "white", "size": 14, "strokeColor": "rgba(0,0,0,0)", "vadjust": -10}, "from": "Hamas", "label": "handed over hostages to", "to": "Israel", "width": 5}, {"arrows": "to", "color": "#27AE60", "font": {"align": "middle", "color": "white", "size": 14, "strokeColor": "rgba(0,0,0,0)", "vadjust": -10}, "from": "Chad", "label": "renewed diplomatic ties", "to": "Israel", "width": 5}, {"arrows": "to", "color": "#27AE60", "font": {"align": "middle", "color": "white", "size": 14, "strokeColor": "rgba(0,0,0,0)", "vadjust": -10}, "from": "Idriss Deby", "label": "welcomed", "to": "Benjamin Netanyahu", "width": 5}, {"arrows": "to", "color": "#E74C3C", "font": {"align": "middle", "color": "white", "size": 14, "strokeColor": "rgba(0,0,0,0)", "vadjust": -10}, "from": "Hamas", "label": "attacked", "to": "Israel", "width": 5}, {"arrows": "to", "color": "#E74C3C", "font": {"align": "middle", "color": "white", "size": 14, "strokeColor": "rgba(0,0,0,0)", "vadjust": -10}, "from": "Noa Tishby", "label": "discussed", "to": "Hamas", "width": 5}, {"arrows": "to", "color": "#E74C3C", "font": {"align": "middle", "color": "white", "size": 14, "strokeColor": "rgba(0,0,0,0)", "vadjust": -10}, "from": "Gal Gadot", "label": "discussed", "to": "Hamas", "width": 5}, {"arrows": "to", "color": "#E74C3C", "font": {"align": "middle", "color": "white", "size": 14, "strokeColor": "rgba(0,0,0,0)", "vadjust": -10}, "from": "Hamas", "label": "attacked", "to": "Israel", "width": 5}, {"arrows": "to", "color": "#E74C3C", "font": {"align": "middle", "color": "white", "size": 14, "strokeColor": "rgba(0,0,0,0)", "vadjust": -10}, "from": "Canada", "label": "paused arms exports to", "to": "Israel", "width": 5}]);
+
+                  nodeColors = {};
+                  allNodes = nodes.get({ returnType: "Object" });
+                  for (nodeId in allNodes) {
+                    nodeColors[nodeId] = allNodes[nodeId].color;
+                  }
+                  allEdges = edges.get({ returnType: "Object" });
+                  // adding nodes and edges to the graph
+                  data = {nodes: nodes, edges: edges};
+
+                  var options = {"physics": {"barnesHut": {"gravitationalConstant": -5050, "centralGravity": 0.75, "springLength": 180, "damping": 0.5, "avoidOverlap": 1}}};
+
+                  
+
+
+                  
+
+                  network = new vis.Network(container, data, options);
+
+                  
+
+                  
+
+                  
+
+
+                  
+
+                  return network;
+
+              }
+              drawGraph();
+        </script>
+    </body>
+</html>
+    <style>
+        .legend {
+            position: absolute;
+            top: 20px;
+            right: 20px;
+            background: white;
+            padding: 10px;
+            border-radius: 5px;
+            font-size: 14px;
+            font-family: Arial, sans-serif;
+            z-index: 1000;
+        }
+        .legend-item {
+            display: flex;
+            align-items: center;
+            margin-bottom: 5px;
+        }
+        .legend-color {
+            width: 15px;
+            height: 15px;
+            margin-right: 5px;
+            border-radius: 3px;
+        }
+    </style>
+    <div class="legend">
+        <strong>Legend</strong>
+        <div class="legend-item"><div class="legend-color" style="background:#FFA500"></div>Person (PER)</div>
+        <div class="legend-item"><div class="legend-color" style="background:#007BFF"></div>Organisation (ORG)</div>
+        <div class="legend-item"><div class="legend-color" style="background:#8E44AD"></div>Location (LOC)</div>
+        <div class="legend-item"><div class="legend-color" style="background:#1ABC9C"></div>Event (EVT)</div>
+        <div class="legend-item"><div class="legend-color" style="background:#BDC3C7"></div>Miscellaneous (MISC)</div>
+        <hr>
+        <div class="legend-item"><div class="legend-color" style="background:#27AE60"></div>Positive (PV)</div>
+        <div class="legend-item"><div class="legend-color" style="background:#E74C3C"></div>Negative (NG)</div>
+        <div class="legend-item"><div class="legend-color" style="background:#D3D3D3"></div>Neutral (NE)</div>
+    </div>
+    

@@ -126,19 +126,19 @@ document.getElementById('search-box').addEventListener('input', async (event) =>
         return;
     }
 
-    const wikileaksFiles = await fetchGraphFiles('wikileaks_graph');
-    const newsFiles = await fetchGraphFiles('news_graph');
+    const wikileaksFiles = await fetchGraphFiles('graphs_wikileaks');
+    const newsFiles = await fetchGraphFiles('graphs_news');
 
-    const wikileaksResults = await searchGraphContent(searchTerm, wikileaksFiles, 'wikileaks_graph');
-    const newsResults = await searchGraphContent(searchTerm, newsFiles, 'news_graph');
+    const wikileaksResults = await searchGraphContent(searchTerm, wikileaksFiles, 'graphs_wikileaks');
+    const newsResults = await searchGraphContent(searchTerm, newsFiles, 'graphs_news');
 
     displaySearchResults([...wikileaksResults, ...newsResults]);
 });
 
 // Function to load and display all graphs initially
 document.addEventListener('DOMContentLoaded', async function() {
-    const wikileaksFiles = await fetchGraphFiles('wikileaks_graph');
-    const newsFiles = await fetchGraphFiles('news_graph');
+    const wikileaksFiles = await fetchGraphFiles('graphs_wikileaks');
+    const newsFiles = await fetchGraphFiles('graphs_news');
 
     const wikileaksList = document.getElementById('wikileaks-list').querySelector('ul');
     const newsList = document.getElementById('news-list').querySelector('ul');
@@ -146,7 +146,7 @@ document.addEventListener('DOMContentLoaded', async function() {
     wikileaksFiles.forEach(file => {
         const listItem = document.createElement('li');
         const link = document.createElement('a');
-        link.href = `wikileaks_graph/${file}`;
+        link.href = `graphs_wikileaks/${file}`;
         var file_str = formatFileName(file)
         link.textContent = file_str;
         listItem.appendChild(link);
@@ -156,7 +156,7 @@ document.addEventListener('DOMContentLoaded', async function() {
     newsFiles.forEach(file => {
         const listItem = document.createElement('li');
         const link = document.createElement('a');
-        link.href = `news_graph/${file}`;
+        link.href = `graphs_news/${file}`;
         var file_str = formatFileName(file)
         link.textContent = file_str;
         listItem.appendChild(link);
